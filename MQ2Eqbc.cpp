@@ -102,9 +102,7 @@ CRITICAL_SECTION   ConnectCS;
 sockaddr_in        serverInfo;
 SOCKET             theSocket;
 
-//PLUGIN_API std::list<std::string>WHYOHWHYOHWHY; // Going to let other plugins know who is on this server as a way of telling toons for trusted actions
-//PLUGIN_API std::list<std::string>connectedcharacters; // Going to let other plugins know who is on this server as a way of telling toons for trusted actions
-std::list<std::string>connectedcharacters;
+std::list<std::string>connectedcharacters; // Will be used so other plugins can determine who is connected to the eqbc server
 CHAR szConnectedChars[4096] = { 0 }; 
 bool bGotNames = false;
 // --------------------------------------
