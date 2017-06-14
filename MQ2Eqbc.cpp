@@ -8,6 +8,8 @@
 /* -Added /bcga support for sending everyone in group including yourself a comand or some text
 // v16.0 - Eqmule 07-22-2016 - Added string safety.
 // v16.1 - Eqmule 07-27-2016 - Fixed a crash that would occur when using channels.
+// v16.2 - jimbob added BCI request for eqbci
+// v16.3 - plure Made it so other plugins can check if someone is connected to your eqbc server
 /***************************************************************/
 
 
