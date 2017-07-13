@@ -1,6 +1,6 @@
 /***************************************************************/
 /* Version 1.0 by
-/* 
+/*
 /*
 /* Version 14.1014 by EqMule
 /* -Added /bcg support for sending everyone in group a comand or some text
@@ -10,6 +10,7 @@
 // v16.1 - Eqmule 07-27-2016 - Fixed a crash that would occur when using channels.
 // v16.2 - jimbob added BCI request for eqbci
 // v16.3 - plure Made it so other plugins can check if someone is connected to your eqbc server
+// v16.4 - Sym added SaveConnectByChar setting to autoconnect to different servers/ports per character
 /***************************************************************/
 
 
@@ -17,7 +18,7 @@
 #include "../MQ2Plugin.h"
 #include <vector>
 const char*        MODULE_NAME        = "MQ2EQBC";
-const double       MODULE_VERSION     = 16.1;
+const double       MODULE_VERSION     = 16.4;
 PreSetup(MODULE_NAME);
 PLUGIN_VERSION(MODULE_VERSION);
 
@@ -53,38 +54,39 @@ const int          MAX_PASSWORD       = 40; // do not change without checking ou
 #define CMD_BCI "\tBCI\n"
 
 // commands & settings
-const char* VALID_COMMANDS     = "connect quit help status reconnect names version colordump channels stopreconnect forceconnect iniconnect";
-const char* VALID_SETTINGS     = "autoconnect control compatmode window reconnectsecs localecho tellwatch guildwatch groupwatch fswatch silentcmd savebychar silentinccmd notifycontrol silentoutmsg echoall";
-const char* szCmdConnect       = "connect";
-const char* szCmdDisconnect    = "quit";
-const char* szCmdHelp          = "help";
-const char* szCmdStatus        = "status";
-const char* szCmdReconnect     = "reconnect";
-const char* szCmdNames         = "names";
-const char* szCmdRelog         = "relog";
-const char* szCmdVersion       = "version";
-const char* szCmdColorDump     = "colordump";
-const char* szCmdChannels      = "channels";
-const char* szCmdNoReconnect   = "stopreconnect";
-const char* szCmdForceConnect  = "forceconnect";
-const char* szCmdIniConnect    = "iniconnect";
-const char* szSetReconnect     = "reconnectsecs";
-const char* szSetAutoConnect   = "autoconnect";
-const char* szSetControl       = "control";
-const char* szSetCompatMode    = "compatmode";
-const char* szSetAutoReconnect = "reconnect";
-const char* szSetWindow        = "window";
-const char* szSetLocalEcho     = "localecho";
-const char* szSetTellWatch     = "tellwatch";
-const char* szSetGuildWatch    = "guildwatch";
-const char* szSetGroupWatch    = "groupwatch";
-const char* szSetFSWatch       = "fswatch";
-const char* szSetSilentCmd     = "silentcmd";
-const char* szSetSaveByChar    = "savebychar";
-const char* szSetSilentIncCmd  = "silentinccmd";
-const char* szSetSilentOutMsg  = "silentoutmsg";
-const char* szSetNotifyControl = "notifycontrol";
-const char* szSetEchoAll       = "echoall";
+const char* VALID_COMMANDS          = "connect quit help status reconnect names version colordump channels stopreconnect forceconnect iniconnect";
+const char* VALID_SETTINGS          = "autoconnect control compatmode window reconnectsecs localecho tellwatch guildwatch groupwatch fswatch silentcmd savebychar saveconnectbychar silentinccmd notifycontrol silentoutmsg echoall";
+const char* szCmdConnect            = "connect";
+const char* szCmdDisconnect         = "quit";
+const char* szCmdHelp               = "help";
+const char* szCmdStatus             = "status";
+const char* szCmdReconnect          = "reconnect";
+const char* szCmdNames              = "names";
+const char* szCmdRelog              = "relog";
+const char* szCmdVersion            = "version";
+const char* szCmdColorDump          = "colordump";
+const char* szCmdChannels           = "channels";
+const char* szCmdNoReconnect        = "stopreconnect";
+const char* szCmdForceConnect       = "forceconnect";
+const char* szCmdIniConnect         = "iniconnect";
+const char* szSetReconnect          = "reconnectsecs";
+const char* szSetAutoConnect        = "autoconnect";
+const char* szSetControl            = "control";
+const char* szSetCompatMode         = "compatmode";
+const char* szSetAutoReconnect      = "reconnect";
+const char* szSetWindow             = "window";
+const char* szSetLocalEcho          = "localecho";
+const char* szSetTellWatch          = "tellwatch";
+const char* szSetGuildWatch         = "guildwatch";
+const char* szSetGroupWatch         = "groupwatch";
+const char* szSetFSWatch            = "fswatch";
+const char* szSetSilentCmd          = "silentcmd";
+const char* szSetSaveByChar         = "savebychar";
+const char* szSetSaveConnectByChar  = "saveconnectbychar";
+const char* szSetSilentIncCmd       = "silentinccmd";
+const char* szSetSilentOutMsg       = "silentoutmsg";
+const char* szSetNotifyControl      = "notifycontrol";
+const char* szSetEchoAll            = "echoall";
 
 // --------------------------------------
 // strings
@@ -105,7 +107,7 @@ sockaddr_in        serverInfo;
 SOCKET             theSocket;
 
 std::list<std::string>connectedcharacters; // Will be used so other plugins can determine who is connected to the eqbc server
-CHAR szConnectedChars[4096] = { 0 }; 
+CHAR szConnectedChars[4096] = { 0 };
 bool bGotNames = false;
 // --------------------------------------
 // class instances
@@ -165,6 +167,7 @@ public:
     int NotifyControl;
     int ReconnectSecs;
     int SaveByChar;
+    int SaveConnectByChar;
     int SetTitle;
     int SilentCmd;
     int SilentIncCmd;
@@ -182,25 +185,27 @@ public:
     void LoadINI()
     {
         char szTemp[MAX_STRING] = {0};
-        GetPrivateProfileString("Last Connect", "Server", "127.0.0.1", szServer, MAX_STRING, INIFileName);
-        GetPrivateProfileString("Last Connect", "Port",   "2112",        szPort, MAX_STRING, INIFileName);
-        AllowControl  = GetPrivateProfileInt("Settings", "AllowControl",           1, INIFileName);
-        AutoConnect   = GetPrivateProfileInt("Settings", "AutoConnect",            0, INIFileName);
-        AutoReconnect = GetPrivateProfileInt("Settings", "AutoReconnect",          1, INIFileName);
-        IRCMode       = GetPrivateProfileInt("Settings", "IRCCompatMode",          1, INIFileName);
-        LocalEcho     = GetPrivateProfileInt("Settings", "LocalEcho",              1, INIFileName);
-        EchoAll       = GetPrivateProfileInt("Settings", "EchoAll",                0, INIFileName);
-        NotifyControl = GetPrivateProfileInt("Settings", "NotifyControl",          0, INIFileName);
-        ReconnectSecs = GetPrivateProfileInt("Settings", "ReconnectRetrySeconds", 15, INIFileName);
-        SaveByChar    = GetPrivateProfileInt("Settings", "SaveByCharacter",        1, INIFileName);
-        SilentCmd     = GetPrivateProfileInt("Settings", "SilentCmd",              0, INIFileName);
-        SilentIncCmd  = GetPrivateProfileInt("Settings", "SilentIncCmd",           0, INIFileName);
-        SilentOutMsg  = GetPrivateProfileInt("Settings", "SilentOutMsg",           0, INIFileName);
-        WatchFsay     = GetPrivateProfileInt("Settings", "FSWatch",                0, INIFileName);
-        WatchGroup    = GetPrivateProfileInt("Settings", "GroupWatch",             0, INIFileName);
-        WatchGuild    = GetPrivateProfileInt("Settings", "GuildWatch",             0, INIFileName);
-        WatchTell     = GetPrivateProfileInt("Settings", "TellWatch",              0, INIFileName);
-        Window        = GetPrivateProfileInt("Settings", "UseWindow",              0, INIFileName);
+        AllowControl      = GetPrivateProfileInt("Settings", "AllowControl",           1, INIFileName);
+        AutoConnect       = GetPrivateProfileInt("Settings", "AutoConnect",            0, INIFileName);
+        AutoReconnect     = GetPrivateProfileInt("Settings", "AutoReconnect",          1, INIFileName);
+        IRCMode           = GetPrivateProfileInt("Settings", "IRCCompatMode",          1, INIFileName);
+        LocalEcho         = GetPrivateProfileInt("Settings", "LocalEcho",              1, INIFileName);
+        EchoAll           = GetPrivateProfileInt("Settings", "EchoAll",                0, INIFileName);
+        NotifyControl     = GetPrivateProfileInt("Settings", "NotifyControl",          0, INIFileName);
+        ReconnectSecs     = GetPrivateProfileInt("Settings", "ReconnectRetrySeconds", 15, INIFileName);
+        SaveByChar        = GetPrivateProfileInt("Settings", "SaveByCharacter",        1, INIFileName);
+        SaveConnectByChar = GetPrivateProfileInt("Settings", "SaveConnectByCharacter",        1, INIFileName);
+        SilentCmd         = GetPrivateProfileInt("Settings", "SilentCmd",              0, INIFileName);
+        SilentIncCmd      = GetPrivateProfileInt("Settings", "SilentIncCmd",           0, INIFileName);
+        SilentOutMsg      = GetPrivateProfileInt("Settings", "SilentOutMsg",           0, INIFileName);
+        WatchFsay         = GetPrivateProfileInt("Settings", "FSWatch",                0, INIFileName);
+        WatchGroup        = GetPrivateProfileInt("Settings", "GroupWatch",             0, INIFileName);
+        WatchGuild        = GetPrivateProfileInt("Settings", "GuildWatch",             0, INIFileName);
+        WatchTell         = GetPrivateProfileInt("Settings", "TellWatch",              0, INIFileName);
+        Window            = GetPrivateProfileInt("Settings", "UseWindow",              0, INIFileName);
+
+        GetPrivateProfileString(SET->SaveConnectByChar ? szCharName : "Last Connect", "Server", "127.0.0.1", szServer, MAX_STRING, INIFileName);
+        GetPrivateProfileString(SET->SaveConnectByChar ? szCharName : "Last Connect", "Port",   "2112",        szPort, MAX_STRING, INIFileName);
 
         GetPrivateProfileString("Settings", "Keybind", "~", WndKey, MAX_STRING, INIFileName);
         KeyCombo Combo;
@@ -211,8 +216,8 @@ public:
 
     void UpdateServer()
     {
-        WritePrivateProfileString("Last Connect", "Server", szServer, INIFileName);
-        WritePrivateProfileString("Last Connect", "Port",     szPort, INIFileName);
+        WritePrivateProfileString(SET->SaveConnectByChar ? szCharName : "Last Connect", "Server", szServer, INIFileName);
+        WritePrivateProfileString(SET->SaveConnectByChar ? szCharName : "Last Connect", "Port",     szPort, INIFileName);
     };
 
     void Change(char* szSetting, bool bToggle)
@@ -324,6 +329,10 @@ public:
             {
                 ToggleSetting(&SaveByChar, &bToggle, &bTurnOn, "SaveByCharacter", "Save UI data by character name");
             }
+            else if (!_strnicmp(szArg, szSetSaveConnectByChar, sizeof(szArg)))
+            {
+                ToggleSetting(&SaveByChar, &bToggle, &bTurnOn, "SaveConnectByCharacter", "Save server connection data by character name");
+            }
             else if (!_strnicmp(szArg, szSetSilentCmd, sizeof(szArg)))
             {
                 ToggleSetting(&SilentCmd, &bToggle, &bTurnOn, "SilentCmd", "Silence 'CMD: [command]' echo");
@@ -353,28 +362,29 @@ public:
 
     CSettingsMgr()
     {
-        AllowControl  = 1;
-        AutoConnect   = 0;
-        AutoReconnect = 1;
-        CustTitle     = 0;
-        EchoAll       = 0;
-        IRCMode       = 1;
-        LocalEcho     = 1;
-        NotifyControl = 0;
-        ReconnectSecs = 15;
-        SaveByChar    = 1;
-        SetTitle      = 0;
-        SilentCmd     = 0;
-        SilentIncCmd  = 0;
-        SilentOutMsg  = 0;
-        WatchFsay     = 0;
-        WatchGroup    = 0;
-        WatchGuild    = 0;
-        WatchTell     = 0;
-        Window        = 0;
+        AllowControl      = 1;
+        AutoConnect       = 0;
+        AutoReconnect     = 1;
+        CustTitle         = 0;
+        EchoAll           = 0;
+        IRCMode           = 1;
+        LocalEcho         = 1;
+        NotifyControl     = 0;
+        ReconnectSecs     = 15;
+        SaveByChar        = 1;
+        SaveConnectByChar = 1;
+        SetTitle          = 0;
+        SilentCmd         = 0;
+        SilentIncCmd      = 0;
+        SilentOutMsg      = 0;
+        WatchFsay         = 0;
+        WatchGroup        = 0;
+        WatchGuild        = 0;
+        WatchTell         = 0;
+        Window            = 0;
         memset(&WndKey, 0, MAX_STRING);
-        FirstLoad     = false;
-        Loaded        = false;
+        FirstLoad         = false;
+        Loaded            = false;
     };
 
 private:
@@ -978,7 +988,7 @@ public:
         char  szCmdChan[]          = CMD_CHANNELS;
 		char *next_token1 = NULL;
         if(char* pName = GetCharName()) {
-			
+
 			if (!szLine || (szLine && szLine[0]=='\0'))
 			{
 				GetPrivateProfileString(pName ? pName : "Settings", "Channels", "", szTemp2, MAX_STRING, INIFileName);
@@ -1077,9 +1087,9 @@ public:
         GetArg(szCurArg, szLine, 2); // 1 was the connect statement.
         if (!*szCurArg)
         {
-            GetPrivateProfileString("Last Connect", "Server",   "127.0.0.1", szTemp, MAX_STRING, INIFileName);
+            GetPrivateProfileString(SET->SaveConnectByChar ? szCharName : "Last Connect", "Server",   "127.0.0.1", szTemp, MAX_STRING, INIFileName);
             strcpy_s(szServer,   szTemp);
-            GetPrivateProfileString("Last Connect", "Port",     "2112",      szTemp, MAX_STRING, INIFileName);
+            GetPrivateProfileString(SET->SaveConnectByChar ? szCharName : "Last Connect", "Port",     "2112",      szTemp, MAX_STRING, INIFileName);
             strcpy_s(szPort,     szTemp);
             GetPrivateProfileString("Last Connect", "Password", "",          szPass, 40, INIFileName);
             strcpy_s(szPassword, szPass);
@@ -1090,7 +1100,7 @@ public:
             GetArg(szCurArg, szLine, 3);
             if (!*szCurArg)
             {
-                GetPrivateProfileString("Last Connect", "Port",     "2112",  szTemp, MAX_STRING, INIFileName);
+                GetPrivateProfileString(SET->SaveConnectByChar ? szCharName : "Last Connect", "Port",     "2112",  szTemp, MAX_STRING, INIFileName);
                 strcpy_s(szPort,     szTemp);
                 GetPrivateProfileString("Last Connect", "Password", "",      szPass, MAX_STRING, INIFileName);
                 strcpy_s(szPassword, szPass);
@@ -1963,7 +1973,7 @@ bool EQBCType::GetMember(MQ2VARPTR VarPtr, char* Member, char* Index, MQ2TYPEVAR
             Dest.DWord = OptStatus(Index);
             return true;
 		case Names:
-		{	
+		{
 			Dest.Ptr = &szConnectedChars[0];
 			Dest.Type = pStringType;
 			return true;
@@ -2443,7 +2453,7 @@ PLUGIN_API void ShutdownPlugin()
     RemoveCommand("/bcmin");
 
     RemoveMQ2Data("EQBC");
-    RemoveMQ2KeyBind("EQBC"); 
+    RemoveMQ2KeyBind("EQBC");
     WINDOW->Destroy(ValidIngame());
 
     // make sure we're not trying to connect...
