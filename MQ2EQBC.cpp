@@ -8,7 +8,8 @@
 /* -Added /bcga support for sending everyone in group including yourself a comand or some text
 // v16.0 - Eqmule 07-22-2016 - Added string safety.
 // v16.1 - Eqmule 07-27-2016 - Fixed a crash that would occur when using channels.
-// v16.2 - jimbob added BCI request for eqbci
+// v16.2 - Eqmule 01-29-2017 - Fixed a crash that would occur when doing /bcaa //tar %t
+// v16.21 - jimbob added BCI request for eqbci
 // v16.3 - plure Made it so other plugins can check if someone is connected to your eqbc server
 // v16.4 - Sym added SaveConnectByChar setting to autoconnect to different servers/ports per character
 /***************************************************************/
@@ -1556,6 +1557,15 @@ private:
 
     void HandleIncomingCmd(char* pszCmd, bool bForce)
     {
+		if (!pszCmd)
+			return;
+
+		//CHAR szCmd[MAX_STRING] = { 0 };
+		if (pszCmd && pszCmd[0]) {
+			if (char*pDest = strchr(pszCmd, '%')) {
+				pEverQuest->DoPercentConvert(pszCmd, false);
+			}
+		}
         char  szTemp[MAX_STRING] = {0};
         if (!SET->AllowControl && !bForce)
         {
