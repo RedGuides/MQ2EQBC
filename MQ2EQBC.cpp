@@ -430,7 +430,8 @@ public:
         CloseOnESC             = 0;
         InputBox->SetMaxChars(512);
         BitOff(WindowStyle, CWS_CLOSE);
-        *(unsigned long*)&(((char*)StmlOut)[EQ_CHAT_HISTORY_OFFSET]) = 400;
+//        *(unsigned long*)&(((char*)StmlOut)[EQ_CHAT_HISTORY_OFFSET]) = 400;
+		StmlOut->MaxLines = 400;
     };
 
     int WndNotification(CXWnd* pWnd, unsigned int uiMessage, void* pData)
