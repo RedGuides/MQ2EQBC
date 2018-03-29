@@ -12,6 +12,7 @@
 // v16.21 - jimbob added BCI request for eqbci
 // v16.3 - plure Made it so other plugins can check if someone is connected to your eqbc server
 // v16.4 - Sym added SaveConnectByChar setting to autoconnect to different servers/ports per character
+// v16.4 - Chatwiththisname - No version change, made it so TLO EQBC.Names is updated anytime someone connects or disconnects. 
 /***************************************************************/
 
 
@@ -109,7 +110,7 @@ sockaddr_in        serverInfo;
 SOCKET             theSocket;
 
 std::list<std::string>connectedcharacters; // Will be used so other plugins can determine who is connected to the eqbc server
-CHAR szConnectedChars[4096] = { 0 };
+CHAR szConnectedChars[MAX_STRING] = { 0 };
 bool bGotNames = false;
 // --------------------------------------
 // class instances
@@ -1148,6 +1149,7 @@ public:
 				connectedcharacters.push_back(szOutput); // Add new people to connectedcharacters when they connect to the server
                 sprintf_s(szOutput, "\ar#\ax - %s has joined the server.", &pRawmsg[7]);
 				WriteOut(szOutput);
+				EQBC->Names(); //Now requests for names occurs when -anyone- connects. 
             }
             if (!strncmp(pRawmsg, "NBQUIT=", 7))
             {
@@ -1155,6 +1157,7 @@ public:
 				connectedcharacters.remove(szOutput); // Remove people to connectedcharacters when they leave the server
                 sprintf_s(szOutput, "\ar#\ax - %s has left the server.", &pRawmsg[7]);
                 WriteOut(szOutput);
+				EQBC->Names(); //Now requests for names occurs when -anyone- disconnects.
             }
             SendNetBotEvent(pRawmsg);
         }
@@ -1308,7 +1311,7 @@ public:
 		if (char *pDest = strstr(szTemp, "- Names: ")) {//szTemp
 			connectedcharacters.clear();
 			//its names and we want them in our tlo so we can check who is online from a macro
-			CHAR szNames[4096] = { 0 };
+			CHAR szNames[MAX_STRING] = { 0 };
 			strcpy_s(szNames, &pDest[9]);
 			if (pDest = strchr(szNames, '.')) {
 				pDest[0] = '\0';
@@ -1470,7 +1473,6 @@ private:
             LastSecs    = 0;
             HandleChannels("",0);
             SendLocalEcho();
-			EQBC->Names(); // When you first connect you collect the names of people attached to the server
             return;
         }
         WriteOut("\ar#\ax Could not connect.");
