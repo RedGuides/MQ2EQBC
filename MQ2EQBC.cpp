@@ -13,6 +13,7 @@
 // v16.3 - plure Made it so other plugins can check if someone is connected to your eqbc server
 // v16.4 - Sym added SaveConnectByChar setting to autoconnect to different servers/ports per character
 // v16.4 - Chatwiththisname - No version change, made it so TLO EQBC.Names is updated anytime someone connects or disconnects.
+// v16.5 - Redbot 5-30-2018 added "NameAnnounce" setting to hide name spam.
 /***************************************************************/
 
 
