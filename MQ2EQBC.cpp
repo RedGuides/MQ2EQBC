@@ -1629,7 +1629,7 @@ private:
 							//								pChar->zoneId, pChar2->Level, GetClassDesc(pChar2->Class), pEverQuest->GetRaceDesc(pChar2->Race), pChar->Exp,
 							//								pChar->AAExp, pChar2->AAPoints,pSpawn->StandState, (pSpawn->PetID == 0xFFFFFFFF) ? '0' : '1');
 							// Extended version for jimbob's eqbci Interface for MQ2EQBCS
-							sprintf_s(szBuff, "1|%d|%d|%d|%d|%d|%d|%d|%d|%s|%s|%I64d|%d|%d|%c|%c|%s|%f|%f|%f|%s|%d|%d|%d|%d|%s",
+							sprintf_s(szBuff, "1|%d|%d|%d|%d|%d|%d|%d|%d|%s|%s|%I64d|%d|%d|%c|%c|%s|%f|%f|%f|%s|%d|%lld|%lld|%d|%s",
 								GetCurHPS(), GetMaxHPS(), GetCurMana(), GetMaxMana(), GetCurEndurance(), GetMaxEndurance(),
 								pChar->zoneId, pChar2->Level, GetClassDesc(pChar2->Class), pEverQuest->GetRaceDesc(pChar2->Race), pChar->Exp,
 								pChar->AAExp, pChar2->AAPoints, pSpawn->StandState, (pSpawn->PetID == 0xFFFFFFFF) ? '0' : '1',
