@@ -1,5 +1,4 @@
 
-
 /***************************************************************/
 /* Version 1.0 by
 /*
@@ -440,6 +439,10 @@ public:
 		InputBox->CRNormal |= 0xFFFFFFFF;
 		CloseOnESC = 0;
 		InputBox->SetMaxChars(512);
+		BitOn(WindowStyle, CWS_TITLE);
+		BitOn(WindowStyle, CWS_MINIMIZE);
+		BitOn(WindowStyle, CWS_RESIZEBORDER);
+		BitOff(WindowStyle, CWS_TRANSPARENT);
 		BitOff(WindowStyle, CWS_CLOSE);
 		//        *(unsigned long*)&(((char*)StmlOut)[EQ_CHAT_HISTORY_OFFSET]) = 400;
 		StmlOut->MaxLines = 400;
