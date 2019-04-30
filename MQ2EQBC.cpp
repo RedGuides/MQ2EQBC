@@ -1,4 +1,3 @@
-
 /***************************************************************/
 /* Version 1.0 by
 /*
@@ -22,23 +21,23 @@
 #include "../MQ2Plugin.h"
 using namespace std;
 #include <vector>
-const char*        MODULE_NAME = "MQ2EQBC";
-const double       MODULE_VERSION = 16.4;
+const char*        MODULE_NAME        = "MQ2EQBC";
+const double       MODULE_VERSION     = 16.4;
 PreSetup(MODULE_NAME);
 PLUGIN_VERSION(MODULE_VERSION);
 
 // --------------------------------------
 // constants
-const char*        PROG_VERSION = "MQ2EQBC 15.0503";
-const char*        CONNECT_START = "LOGIN";
-const char*        CONNECT_START2 = "=";
-const char*        CONNECT_END = ";";
-const char*        CONNECT_PWSEP = ":";
-const char*        SEND_LINE_TERM = "\n";
-const unsigned int MAX_READBUF = 2048;
+const char*        PROG_VERSION       = "MQ2EQBC 15.0503";
+const char*        CONNECT_START      = "LOGIN";
+const char*        CONNECT_START2     = "=";
+const char*        CONNECT_END        = ";";
+const char*        CONNECT_PWSEP      = ":";
+const char*        SEND_LINE_TERM     = "\n";
+const unsigned int MAX_READBUF        = 2048;
 
-const unsigned int COMMAND_HIST_SIZE = 50;
-const int          MAX_PASSWORD = 40; // do not change without checking out the cmd buffer in eqbcs
+const unsigned int COMMAND_HIST_SIZE  = 50;
+const int          MAX_PASSWORD       = 40; // do not change without checking out the cmd buffer in eqbcs
 
 									  // consistency
 #define COLOR_NAME "\ay"
@@ -58,50 +57,50 @@ const int          MAX_PASSWORD = 40; // do not change without checking out the 
 #define CMD_BCI "\tBCI\n"
 
 // commands & settings
-const char* VALID_COMMANDS = "connect quit help status reconnect names version colordump channels stopreconnect forceconnect iniconnect";
-const char* VALID_SETTINGS = "autoconnect control compatmode window reconnectsecs localecho tellwatch guildwatch groupwatch fswatch silentcmd savebychar silentinccmd notifycontrol silentoutmsg echoall";
-const char* szCmdConnect = "connect";
-const char* szCmdDisconnect = "quit";
-const char* szCmdHelp = "help";
-const char* szCmdStatus = "status";
-const char* szCmdReconnect = "reconnect";
-const char* szCmdNames = "names";
-const char* szCmdRelog = "relog";
-const char* szCmdVersion = "version";
-const char* szCmdColorDump = "colordump";
-const char* szCmdChannels = "channels";
-const char* szCmdNoReconnect = "stopreconnect";
-const char* szCmdForceConnect = "forceconnect";
-const char* szCmdIniConnect = "iniconnect";
-const char* szSetReconnect = "reconnectsecs";
-const char* szSetAutoConnect = "autoconnect";
-const char* szSetControl = "control";
-const char* szSetCompatMode = "compatmode";
+const char* VALID_COMMANDS     = "connect quit help status reconnect names version colordump channels stopreconnect forceconnect iniconnect";
+const char* VALID_SETTINGS     = "autoconnect control compatmode window reconnectsecs localecho tellwatch guildwatch groupwatch fswatch silentcmd savebychar silentinccmd notifycontrol silentoutmsg echoall";
+const char* szCmdConnect       = "connect";
+const char* szCmdDisconnect    = "quit";
+const char* szCmdHelp          = "help";
+const char* szCmdStatus        = "status";
+const char* szCmdReconnect     = "reconnect";
+const char* szCmdNames         = "names";
+const char* szCmdRelog         = "relog";
+const char* szCmdVersion       = "version";
+const char* szCmdColorDump     = "colordump";
+const char* szCmdChannels      = "channels";
+const char* szCmdNoReconnect   = "stopreconnect";
+const char* szCmdForceConnect  = "forceconnect";
+const char* szCmdIniConnect    = "iniconnect";
+const char* szSetReconnect     = "reconnectsecs";
+const char* szSetAutoConnect   = "autoconnect";
+const char* szSetControl       = "control";
+const char* szSetCompatMode    = "compatmode";
 const char* szSetAutoReconnect = "reconnect";
-const char* szSetWindow = "window";
-const char* szSetLocalEcho = "localecho";
-const char* szSetTellWatch = "tellwatch";
-const char* szSetGuildWatch = "guildwatch";
-const char* szSetGroupWatch = "groupwatch";
-const char* szSetFSWatch = "fswatch";
-const char* szSetSilentCmd = "silentcmd";
-const char* szSetSaveByChar = "savebychar";
-const char* szSetSilentIncCmd = "silentinccmd";
-const char* szSetSilentOutMsg = "silentoutmsg";
+const char* szSetWindow        = "window";
+const char* szSetLocalEcho     = "localecho";
+const char* szSetTellWatch     = "tellwatch";
+const char* szSetGuildWatch    = "guildwatch";
+const char* szSetGroupWatch    = "groupwatch";
+const char* szSetFSWatch       = "fswatch";
+const char* szSetSilentCmd     = "silentcmd";
+const char* szSetSaveByChar    = "savebychar";
+const char* szSetSilentIncCmd  = "silentinccmd";
+const char* szSetSilentOutMsg  = "silentoutmsg";
 const char* szSetNotifyControl = "notifycontrol";
-const char* szSetEchoAll = "echoall";
-const char* szSetNameAnnounce = "nameannounce";
+const char* szSetEchoAll       = "echoall";
+const char* szSetNameAnnounce  = "nameannounce";
 const char* szSetSaveConnectByChar = "saveconnectbychar";
 
 // --------------------------------------
 // strings
-char szPassword[MAX_PASSWORD] = { 0 };
-char szServer[MAX_STRING] = { 0 };
-char szPort[MAX_STRING] = { 0 };
-char szToonName[MAX_STRING] = { 0 };
-char szCharName[MAX_STRING] = { 0 };
-char szToonCmdStart[MAX_STRING] = { 0 };
-char szColorChars[] = "yogurtbmpwx";
+char szPassword[MAX_PASSWORD]   = {0};
+char szServer[MAX_STRING]       = {0};
+char szPort[MAX_STRING]         = {0};
+char szToonName[MAX_STRING]     = {0};
+char szCharName[MAX_STRING]     = {0};
+char szToonCmdStart[MAX_STRING] = {0};
+char szColorChars[]             = "yogurtbmpwx";
 
 // --------------------------------------
 // winsock
@@ -123,8 +122,8 @@ class CConnectionMgr*       EQBC = NULL;
 
 // --------------------------------------
 // function prototypes
-typedef void(__cdecl *fNetBotOnMsg)(char*, char*);
-typedef void(__cdecl *fNetBotOnEvent)(char*);
+typedef void (__cdecl *fNetBotOnMsg)(char*, char*);
+typedef void (__cdecl *fNetBotOnEvent)(char*);
 void WriteOut(char* szText);
 unsigned long __stdcall EQBCConnectThread(void* lpParam);
 
@@ -191,23 +190,23 @@ public:
 	void LoadINI()
 	{
 		char szTemp[MAX_STRING] = { 0 };
-		AllowControl = GetPrivateProfileInt("Settings", "AllowControl", 1, INIFileName);
-		AutoConnect = GetPrivateProfileInt("Settings", "AutoConnect", 0, INIFileName);
-		AutoReconnect = GetPrivateProfileInt("Settings", "AutoReconnect", 1, INIFileName);
-		IRCMode = GetPrivateProfileInt("Settings", "IRCCompatMode", 1, INIFileName);
-		LocalEcho = GetPrivateProfileInt("Settings", "LocalEcho", 1, INIFileName);
-		EchoAll = GetPrivateProfileInt("Settings", "EchoAll", 0, INIFileName);
-		NotifyControl = GetPrivateProfileInt("Settings", "NotifyControl", 0, INIFileName);
-		ReconnectSecs = GetPrivateProfileInt("Settings", "ReconnectRetrySeconds", 15, INIFileName);
-		SaveByChar = GetPrivateProfileInt("Settings", "SaveByCharacter", 1, INIFileName);
-		SilentCmd = GetPrivateProfileInt("Settings", "SilentCmd", 0, INIFileName);
-		SilentIncCmd = GetPrivateProfileInt("Settings", "SilentIncCmd", 0, INIFileName);
-		SilentOutMsg = GetPrivateProfileInt("Settings", "SilentOutMsg", 0, INIFileName);
-		WatchFsay = GetPrivateProfileInt("Settings", "FSWatch", 0, INIFileName);
-		WatchGroup = GetPrivateProfileInt("Settings", "GroupWatch", 0, INIFileName);
-		WatchGuild = GetPrivateProfileInt("Settings", "GuildWatch", 0, INIFileName);
-		WatchTell = GetPrivateProfileInt("Settings", "TellWatch", 0, INIFileName);
-		Window = GetPrivateProfileInt("Settings", "UseWindow", 0, INIFileName);
+        AllowControl  = GetPrivateProfileInt("Settings", "AllowControl",           1, INIFileName);
+        AutoConnect   = GetPrivateProfileInt("Settings", "AutoConnect",            0, INIFileName);
+        AutoReconnect = GetPrivateProfileInt("Settings", "AutoReconnect",          1, INIFileName);
+        IRCMode       = GetPrivateProfileInt("Settings", "IRCCompatMode",          1, INIFileName);
+        LocalEcho     = GetPrivateProfileInt("Settings", "LocalEcho",              1, INIFileName);
+        EchoAll       = GetPrivateProfileInt("Settings", "EchoAll",                0, INIFileName);
+        NotifyControl = GetPrivateProfileInt("Settings", "NotifyControl",          0, INIFileName);
+        ReconnectSecs = GetPrivateProfileInt("Settings", "ReconnectRetrySeconds", 15, INIFileName);
+        SaveByChar    = GetPrivateProfileInt("Settings", "SaveByCharacter",        1, INIFileName);
+        SilentCmd     = GetPrivateProfileInt("Settings", "SilentCmd",              0, INIFileName);
+        SilentIncCmd  = GetPrivateProfileInt("Settings", "SilentIncCmd",           0, INIFileName);
+        SilentOutMsg  = GetPrivateProfileInt("Settings", "SilentOutMsg",           0, INIFileName);
+        WatchFsay     = GetPrivateProfileInt("Settings", "FSWatch",                0, INIFileName);
+        WatchGroup    = GetPrivateProfileInt("Settings", "GroupWatch",             0, INIFileName);
+        WatchGuild    = GetPrivateProfileInt("Settings", "GuildWatch",             0, INIFileName);
+        WatchTell     = GetPrivateProfileInt("Settings", "TellWatch",              0, INIFileName);
+        Window        = GetPrivateProfileInt("Settings", "UseWindow",              0, INIFileName);
 		SaveConnectByChar = GetPrivateProfileInt("Settings", "SaveConnectByCharacter", 1, INIFileName);
 		NameAnnounce = GetPrivateProfileInt("Settings", "NameAnnounce", 1, INIFileName);
 
@@ -229,11 +228,11 @@ public:
 
 	void Change(char* szSetting, bool bToggle)
 	{
-		char szMsg[MAX_STRING] = { 0 };
-		char szArg[MAX_STRING] = { 0 };
-		char szState[MAX_STRING] = { 0 };
-		bool bFailed = false;
-		int  bTurnOn = FALSE;
+        char szMsg[MAX_STRING]   = {0};
+        char szArg[MAX_STRING] = {0};
+        char szState[MAX_STRING] = {0};
+        bool bFailed             = false;
+        int  bTurnOn             = FALSE;
 
 		GetArg(szArg, szSetting, 1);
 		if (!*szArg)
@@ -373,30 +372,30 @@ public:
 
 	CSettingsMgr()
 	{
-		AllowControl = 1;
-		AutoConnect = 0;
-		AutoReconnect = 1;
-		CustTitle = 0;
-		EchoAll = 0;
-		IRCMode = 1;
-		LocalEcho = 1;
-		NotifyControl = 0;
-		ReconnectSecs = 15;
-		SaveByChar = 1;
-		SetTitle = 0;
-		SilentCmd = 0;
-		SilentIncCmd = 0;
-		SilentOutMsg = 0;
-		WatchFsay = 0;
-		WatchGroup = 0;
-		WatchGuild = 0;
-		WatchTell = 0;
-		Window = 0;
+        AllowControl  = 1;
+        AutoConnect   = 0;
+        AutoReconnect = 1;
+        CustTitle     = 0;
+        EchoAll       = 0;
+        IRCMode       = 1;
+        LocalEcho     = 1;
+        NotifyControl = 0;
+        ReconnectSecs = 15;
+        SaveByChar    = 1;
+        SetTitle      = 0;
+        SilentCmd     = 0;
+        SilentIncCmd  = 0;
+        SilentOutMsg  = 0;
+        WatchFsay     = 0;
+        WatchGroup    = 0;
+        WatchGuild    = 0;
+        WatchTell     = 0;
+        Window        = 0;
 		SaveConnectByChar = 1;
-		NameAnnounce = 1;
+		NameAnnounce  = 1;
 		memset(&WndKey, 0, MAX_STRING);
-		FirstLoad = false;
-		Loaded = false;
+		FirstLoad     = false;
+        Loaded        = false;
 	};
 
 private:
@@ -427,26 +426,26 @@ public:
 	struct _CSIDLWND*  OutStruct;
 
 	CEQBCWnd(CXStr* Template) : CCustomWnd(Template)
-	{
-		iCurCommand = -1;
-		SetWndNotification(CEQBCWnd);
-		StmlOut = (CStmlWnd *)GetChildItem("CW_ChatOutput");
-		OutWnd = (CXWnd*)StmlOut;
-		OutWnd->Clickable = 1;
-		OutStruct = (_CSIDLWND *)GetChildItem("CW_ChatOutput");
-		InputBox = (CTextEntryWnd*)GetChildItem("CW_ChatInput");
-		InputBox->WindowStyle |= 0x800C0;
-		InputBox->CRNormal |= 0xFFFFFFFF;
-		CloseOnESC = 0;
-		InputBox->SetMaxChars(512);
-		BitOn(WindowStyle, CWS_TITLE);
-		BitOn(WindowStyle, CWS_MINIMIZE);
-		BitOn(WindowStyle, CWS_RESIZEBORDER);
-		BitOff(WindowStyle, CWS_TRANSPARENT);
-		BitOff(WindowStyle, CWS_CLOSE);
-		//        *(unsigned long*)&(((char*)StmlOut)[EQ_CHAT_HISTORY_OFFSET]) = 400;
-		StmlOut->MaxLines = 400;
-	};
+    {
+        iCurCommand = -1;
+        SetWndNotification(CEQBCWnd);
+        StmlOut = (CStmlWnd *)GetChildItem("CW_ChatOutput");
+		RemoveStyle(CWS_TRANSPARENT);
+		AddStyle(CWS_RESIZEBORDER | CWS_TITLE | CWS_MINIMIZE);
+
+        SetBGColor(0xFF000000);//black background
+        OutWnd = (CXWnd*)StmlOut;
+        OutWnd->SetClickable(1);
+        OutStruct = (_CSIDLWND *)GetChildItem("CW_ChatOutput");
+        InputBox = (CTextEntryWnd*)GetChildItem("CW_ChatInput");
+        InputBox->AddStyle(0x800C0);
+        InputBox->SetCRNormal(0xFFFFFFFF);
+        SetEscapable(0);
+        InputBox->SetMaxChars(512);
+        RemoveStyle(CWS_CLOSE);
+        //        *(unsigned long*)&(((char*)StmlOut)[EQ_CHAT_HISTORY_OFFSET]) = 400;
+        StmlOut->MaxLines = 400;
+    };
 
 	int WndNotification(CXWnd* pWnd, unsigned int uiMessage, void* pData)
 	{
@@ -483,7 +482,7 @@ public:
 			}
 			else if (uiMessage == XWM_HISTORY && pData)
 			{
-				int* pInt = (int*)pData;
+				int* pInt      = (int*)pData;
 				int  iKeyPress = pInt[1];
 				if (iKeyPress == 200) // KeyUp: 0xC8
 				{
@@ -525,7 +524,7 @@ public:
 		}
 		else if (pWnd == NULL && uiMessage == XWM_CLOSE)
 		{
-			dShow = 1;
+			SetVisible(true);
 			ResetKeybinds();
 			return 0;
 		}
@@ -621,10 +620,11 @@ public:
 	{
 		if (!BCWnd || SET->CustTitle) return;
 		char szWindowText[MAX_STRING] = { 0 };
-		GetCXStr(BCWnd->WindowText, szWindowText);
+		GetCXStr(BCWnd->CGetWindowText(), szWindowText);
 		if (_strnicmp(szWindowText, szServer, sizeof(szWindowText)))
 		{
-			SetCXStr(&BCWnd->WindowText, szServer);
+			BCWnd->CSetWindowText(szServer);
+			//SetCXStr(&BCWnd->WindowText, szServer);
 		}
 	};
 
@@ -636,7 +636,7 @@ public:
 			if (!KeyActive)
 			{
 				CXRect rect = ((CXWnd*)BCWnd->InputBox)->GetScreenRect();
-				CXPoint pt = rect.CenterPoint();
+				CXPoint pt  = rect.CenterPoint();
 				((CXWnd*)BCWnd->InputBox)->SetWindowTextA(CXStr(""));
 				((CXWnd*)BCWnd->InputBox)->HandleLButtonDown(&pt, 0);
 				KeyActive = true;
@@ -667,68 +667,72 @@ private:
 		class CXStr ChatWnd("ChatWindow");
 		BCWnd = new CEQBCWnd(&ChatWnd);
 
-		SET->CustTitle = GetPrivateProfileInt(SET->SaveByChar ? szCharName : "Window", "UseMyTitle", 0, INIFileName);
-		BCWnd->Location.top = GetPrivateProfileInt(SET->SaveByChar ? szCharName : "Window", "ChatTop", 10, INIFileName);
-		BCWnd->Location.bottom = GetPrivateProfileInt(SET->SaveByChar ? szCharName : "Window", "ChatBottom", 210, INIFileName);
-		BCWnd->Location.left = GetPrivateProfileInt(SET->SaveByChar ? szCharName : "Window", "ChatLeft", 10, INIFileName);
-		BCWnd->Location.right = GetPrivateProfileInt(SET->SaveByChar ? szCharName : "Window", "ChatRight", 410, INIFileName);
-		BCWnd->Fades = (GetPrivateProfileInt(SET->SaveByChar ? szCharName : "Window", "Fades", 0, INIFileName) ? true : false);
-		BCWnd->Alpha = GetPrivateProfileInt(SET->SaveByChar ? szCharName : "Window", "Alpha", 255, INIFileName);
-		BCWnd->FadeToAlpha = GetPrivateProfileInt(SET->SaveByChar ? szCharName : "Window", "FadeToAlpha", 255, INIFileName);
-		BCWnd->FadeDuration = GetPrivateProfileInt(SET->SaveByChar ? szCharName : "Window", "Duration", 500, INIFileName);
-		BCWnd->Locked = (GetPrivateProfileInt(SET->SaveByChar ? szCharName : "Window", "Locked", 0, INIFileName) ? true : false);
-		BCWnd->FadeDelay = GetPrivateProfileInt(SET->SaveByChar ? szCharName : "Window", "Delay", 2000, INIFileName);
-		BCWnd->BGType = GetPrivateProfileInt(SET->SaveByChar ? szCharName : "Window", "BGType", 1, INIFileName);
-		ARGBCOLOR col = { 0 };
-		col.A = GetPrivateProfileInt(SET->SaveByChar ? szCharName : "Window", "BGTint.alpha", 255, INIFileName);
-		col.R = GetPrivateProfileInt(SET->SaveByChar ? szCharName : "Window", "BGTint.red", 0, INIFileName);
-		col.G = GetPrivateProfileInt(SET->SaveByChar ? szCharName : "Window", "BGTint.green", 0, INIFileName);
-		col.B = GetPrivateProfileInt(SET->SaveByChar ? szCharName : "Window", "BGTint.blue", 0, INIFileName);
+        SET->CustTitle         = GetPrivateProfileInt(SET->SaveByChar ? szCharName : "Window", "UseMyTitle",   0,    INIFileName);
+		//left top right bottom
+		BCWnd->SetLocation({ (LONG)GetPrivateProfileInt(SET->SaveByChar ? szCharName : "Window", "ChatLeft",     10,   INIFileName),
+			(LONG)GetPrivateProfileInt(SET->SaveByChar ? szCharName : "Window", "ChatTop",      10,   INIFileName),
+			(LONG)GetPrivateProfileInt(SET->SaveByChar ? szCharName : "Window", "ChatRight",    410,  INIFileName),
+			(LONG)GetPrivateProfileInt(SET->SaveByChar ? szCharName : "Window", "ChatBottom",   210,  INIFileName) });
 
-		BCWnd->BGColor = col.ARGB;
+        BCWnd->SetFades((GetPrivateProfileInt(SET->SaveByChar ? szCharName : "Window", "Fades",        0,    INIFileName) ? true:false));
+        BCWnd->SetAlpha(GetPrivateProfileInt(SET->SaveByChar ? szCharName : "Window", "Alpha",        255,  INIFileName));
+        BCWnd->SetFadeToAlpha(GetPrivateProfileInt(SET->SaveByChar ? szCharName : "Window", "FadeToAlpha",  255,  INIFileName));
+        BCWnd->SetFadeDuration(GetPrivateProfileInt(SET->SaveByChar ? szCharName : "Window", "Duration",     500,  INIFileName));
+		BCWnd->SetLocked((GetPrivateProfileInt(SET->SaveByChar ? szCharName : "Window", "Locked", 0, INIFileName) ? true:false));
+        BCWnd->SetFadeDelay(GetPrivateProfileInt(SET->SaveByChar ? szCharName : "Window", "Delay",        2000, INIFileName));
+        BCWnd->SetBGType(GetPrivateProfileInt(SET->SaveByChar ? szCharName : "Window", "BGType",       1,    INIFileName));
+		ARGBCOLOR col = { 0 };
+		col.A				   = GetPrivateProfileInt(SET->SaveByChar ? szCharName : "Window", "BGTint.alpha", 255, INIFileName);
+		col.R				   = GetPrivateProfileInt(SET->SaveByChar ? szCharName : "Window", "BGTint.red", 0, INIFileName);
+        col.G			       = GetPrivateProfileInt(SET->SaveByChar ? szCharName : "Window", "BGTint.green", 0,  INIFileName);
+        col.B			       = GetPrivateProfileInt(SET->SaveByChar ? szCharName : "Window", "BGTint.blue",  0,  INIFileName);
+
+		BCWnd->SetBGColor(col.ARGB);
 		NewFont(GetPrivateProfileInt(SET->SaveByChar ? szCharName : "Window", "FontSize", 4, INIFileName));
 		if (SET->CustTitle)
 		{
 			GetPrivateProfileString(SET->SaveByChar ? szCharName : "Window", "WindowTitle", szWindowText, szWindowText, MAX_STRING, INIFileName);
 		}
-		SetCXStr(&BCWnd->WindowText, szWindowText);
+		BCWnd->CSetWindowText(szWindowText);
+		//SetCXStr(&BCWnd->WindowText, szWindowText);
 		((CXWnd*)BCWnd)->Show(1, 1);
-		BitOff(BCWnd->OutStruct->WindowStyle, CWS_CLOSE);
+		BCWnd->OutStruct->RemoveStyle(CWS_CLOSE);
+		//BitOff(BCWnd->OutStruct->WindowStyle, CWS_CLOSE);
 	};
 
 	void SaveWnd()
 	{
 		//return;
 		PCSIDLWND UseWnd = (PCSIDLWND)BCWnd;
-		char szTemp[2048] = { 0 };
+        char szTemp[2048]              = {0};
 
-		WritePrivateProfileString(SET->SaveByChar ? szCharName : "Window", "ChatTop", SafeItoa(UseWnd->Location.top, szTemp, 10), INIFileName);
-		WritePrivateProfileString(SET->SaveByChar ? szCharName : "Window", "ChatBottom", SafeItoa(UseWnd->Location.bottom, szTemp, 10), INIFileName);
-		WritePrivateProfileString(SET->SaveByChar ? szCharName : "Window", "ChatLeft", SafeItoa(UseWnd->Location.left, szTemp, 10), INIFileName);
-		WritePrivateProfileString(SET->SaveByChar ? szCharName : "Window", "ChatRight", SafeItoa(UseWnd->Location.right, szTemp, 10), INIFileName);
-		WritePrivateProfileString(SET->SaveByChar ? szCharName : "Window", "Fades", SafeItoa(UseWnd->Fades, szTemp, 10), INIFileName);
-		WritePrivateProfileString(SET->SaveByChar ? szCharName : "Window", "Alpha", SafeItoa(UseWnd->Alpha, szTemp, 10), INIFileName);
-		WritePrivateProfileString(SET->SaveByChar ? szCharName : "Window", "FadeToAlpha", SafeItoa(UseWnd->FadeToAlpha, szTemp, 10), INIFileName);
-		WritePrivateProfileString(SET->SaveByChar ? szCharName : "Window", "Duration", SafeItoa(UseWnd->FadeDuration, szTemp, 10), INIFileName);
-		WritePrivateProfileString(SET->SaveByChar ? szCharName : "Window", "Locked", SafeItoa(UseWnd->Locked, szTemp, 10), INIFileName);
-		WritePrivateProfileString(SET->SaveByChar ? szCharName : "Window", "Delay", SafeItoa(UseWnd->FadeDelay, szTemp, 10), INIFileName);
-		WritePrivateProfileString(SET->SaveByChar ? szCharName : "Window", "BGType", SafeItoa(UseWnd->BGType, szTemp, 10), INIFileName);
+        WritePrivateProfileString(SET->SaveByChar ? szCharName : "Window", "ChatTop",      SafeItoa(UseWnd->GetLocation().top,    szTemp, 10), INIFileName);
+        WritePrivateProfileString(SET->SaveByChar ? szCharName : "Window", "ChatBottom",   SafeItoa(UseWnd->GetLocation().bottom, szTemp, 10), INIFileName);
+        WritePrivateProfileString(SET->SaveByChar ? szCharName : "Window", "ChatLeft",     SafeItoa(UseWnd->GetLocation().left,   szTemp, 10), INIFileName);
+        WritePrivateProfileString(SET->SaveByChar ? szCharName : "Window", "ChatRight",    SafeItoa(UseWnd->GetLocation().right,  szTemp, 10), INIFileName);
+        WritePrivateProfileString(SET->SaveByChar ? szCharName : "Window", "Fades",        SafeItoa(UseWnd->GetFades(),           szTemp, 10), INIFileName);
+        WritePrivateProfileString(SET->SaveByChar ? szCharName : "Window", "Alpha",        SafeItoa(UseWnd->GetAlpha(),           szTemp, 10), INIFileName);
+        WritePrivateProfileString(SET->SaveByChar ? szCharName : "Window", "FadeToAlpha",  SafeItoa(UseWnd->GetFadeToAlpha(),     szTemp, 10), INIFileName);
+        WritePrivateProfileString(SET->SaveByChar ? szCharName : "Window", "Duration",     SafeItoa(UseWnd->GetFadeDuration(),    szTemp, 10), INIFileName);
+        WritePrivateProfileString(SET->SaveByChar ? szCharName : "Window", "Locked",       SafeItoa(UseWnd->IsLocked(),          szTemp, 10), INIFileName);
+        WritePrivateProfileString(SET->SaveByChar ? szCharName : "Window", "Delay",        SafeItoa(UseWnd->GetFadeDelay(),   szTemp, 10), INIFileName);
+        WritePrivateProfileString(SET->SaveByChar ? szCharName : "Window", "BGType",       SafeItoa(UseWnd->GetBGType(),          szTemp, 10), INIFileName);
 
 		ARGBCOLOR col = { 0 };
-		col.ARGB = UseWnd->BGColor;
-		WritePrivateProfileString(SET->SaveByChar ? szCharName : "Window", "BGTint.alpha", SafeItoa(col.A, szTemp, 10), INIFileName);
-		WritePrivateProfileString(SET->SaveByChar ? szCharName : "Window", "BGTint.red", SafeItoa(col.R, szTemp, 10), INIFileName);
-		WritePrivateProfileString(SET->SaveByChar ? szCharName : "Window", "BGTint.green", SafeItoa(col.G, szTemp, 10), INIFileName);
-		WritePrivateProfileString(SET->SaveByChar ? szCharName : "Window", "BGTint.blue", SafeItoa(col.B, szTemp, 10), INIFileName);
-		WritePrivateProfileString(SET->SaveByChar ? szCharName : "Window", "FontSize", SafeItoa(FontSize, szTemp, 10), INIFileName);
-		GetCXStr(UseWnd->WindowText, szTemp, MAX_STRING);
-		WritePrivateProfileString(SET->SaveByChar ? szCharName : "Window", "WindowTitle", szTemp, INIFileName);
+		col.ARGB = UseWnd->GetBGColor();
+		WritePrivateProfileString(SET->SaveByChar ? szCharName : "Window", "BGTint.alpha",   SafeItoa(col.A,       szTemp, 10), INIFileName);
+		WritePrivateProfileString(SET->SaveByChar ? szCharName : "Window", "BGTint.red",   SafeItoa(col.R,       szTemp, 10), INIFileName);
+        WritePrivateProfileString(SET->SaveByChar ? szCharName : "Window", "BGTint.green", SafeItoa(col.G,       szTemp, 10), INIFileName);
+        WritePrivateProfileString(SET->SaveByChar ? szCharName : "Window", "BGTint.blue",  SafeItoa(col.B,       szTemp, 10), INIFileName);
+        WritePrivateProfileString(SET->SaveByChar ? szCharName : "Window", "FontSize",     SafeItoa(FontSize,                szTemp, 10), INIFileName);
+        GetCXStr(UseWnd->CGetWindowText(), szTemp,MAX_STRING);
+        WritePrivateProfileString(SET->SaveByChar ? szCharName : "Window", "WindowTitle",                                szTemp,      INIFileName);
 	};
 
 	void Output(char* szText)
 	{
 		((CXWnd*)BCWnd)->Show(1, 1);
-		bool bScrollDown = (BCWnd->OutWnd->VScrollPos == BCWnd->OutWnd->VScrollMax) ? true : false;
+		bool bScrollDown = (BCWnd->OutWnd->GetVScrollPos() == BCWnd->OutWnd->GetVScrollMax()) ? true : false;
 		char szProcessed[MAX_STRING] = { 0 };
 		StripMQChat(szText, szProcessed);
 		CheckChatForEvent(szProcessed);
@@ -737,7 +741,7 @@ private:
 		CXStr NewText(szProcessed);
 		ConvertItemTags(NewText, TRUE);
 		(BCWnd->StmlOut)->AppendSTML(NewText);
-		if (bScrollDown) (BCWnd->OutWnd)->SetVScrollPos(BCWnd->OutStruct->VScrollMax);
+		if (bScrollDown) (BCWnd->OutWnd)->SetVScrollPos(BCWnd->OutStruct->GetVScrollMax());
 	};
 
 	void SetFontSize(unsigned int uiSize)
@@ -757,10 +761,10 @@ private:
 		pulSelFont = (unsigned long*)pFonts->ppFonts[uiSize];
 
 		CXStr ContStr(((CStmlWnd*)BCWnd->StmlOut)->GetSTMLText());
-		((CXWnd*)BCWnd->StmlOut)->SetFont(pulSelFont);
-		((CStmlWnd*)BCWnd->StmlOut)->SetSTMLText(ContStr, 1, 0);
-		((CStmlWnd*)BCWnd->StmlOut)->ForceParseNow();
-		((CXWnd*)BCWnd->StmlOut)->SetVScrollPos(BCWnd->StmlOut->VScrollMax);
+        ((CXWnd*)   BCWnd->StmlOut)->SetFont(pulSelFont);
+        ((CStmlWnd*)BCWnd->StmlOut)->SetSTMLText(ContStr, 1, 0);
+        ((CStmlWnd*)BCWnd->StmlOut)->ForceParseNow();
+        ((CXWnd*)   BCWnd->StmlOut)->SetVScrollPos(BCWnd->StmlOut->GetVScrollMax());
 
 		FontSize = uiSize;
 	};
@@ -772,8 +776,8 @@ private:
 
 void WriteOut(char *szText)
 {
-	typedef int(__cdecl *fMQWriteBC)(char *szText);
-	int bWrite = true;
+    typedef int (__cdecl *fMQWriteBC)(char *szText);
+    int bWrite        = true;
 	PMQPLUGIN pPlugin = pPlugins;
 	while (pPlugin)
 	{
@@ -835,8 +839,8 @@ public:
 	void SendLocalEcho()
 	{
 		if (!Connected) return;
-		int  iErr = 0;
-		char szCommand[15] = { 0 };
+        int  iErr          = 0;
+        char szCommand[15] = {0};
 		sprintf_s(szCommand, "%s%i\n", CMD_LOCALECHO, SET->LocalEcho);
 		iErr = send(theSocket, szCommand, strlen(szCommand), 0);
 		CheckError("SendLocalEcho:Send1", iErr);
@@ -858,7 +862,7 @@ public:
 		char szCmdBct[] = CMD_TELL;
 		if (szLine && strlen(szLine))
 		{
-			for (DWORD N = 1; N < 6; N++) {
+			for (DWORD N = 1; N<6; N++) {
 				if (pChar && pChar->pGroupInfo && pChar->pGroupInfo->pMember[N] && pChar->pGroupInfo->pMember[N]->Mercenary == 0) {
 					CHAR Name[MAX_STRING] = { 0 };
 					GetCXStr(pChar->pGroupInfo->pMember[N]->pName, Name, MAX_STRING);
@@ -867,12 +871,12 @@ public:
 					ChanTransmit(szCmdBct, Name);
 					if (SET->IRCMode && !SET->SilentOutMsg)
 					{
-						char szTemp[MAX_STRING] = { 0 };
-						int iSrc = 0;
-						int iDest = 0;
-						int iLen = 0;
+						char szTemp[MAX_STRING] = {0};
+						int iSrc                = 0;
+						int iDest               = 0;
+						int iLen                = 0;
 
-						iLen = strlen(Name);
+						iLen   = strlen(Name);
 						iDest += WriteStringGetCount(&szTemp[iDest], COLOR_STELL1);
 						while (Name[iSrc] != ' ' && Name[iSrc] != '\n' && iSrc <= iLen)
 						{
@@ -899,7 +903,7 @@ public:
 		char szCmdBct[] = CMD_TELL;
 		if (szLine && strlen(szLine))
 		{
-			for (DWORD N = 0; N < 6; N++) {
+			for (DWORD N = 0; N<6; N++) {
 				if (pChar && pChar->pGroupInfo && pChar->pGroupInfo->pMember[N] && pChar->pGroupInfo->pMember[N]->Mercenary == 0) {
 					CHAR Name[MAX_STRING] = { 0 };
 					GetCXStr(pChar->pGroupInfo->pMember[N]->pName, Name, MAX_STRING);
@@ -942,12 +946,12 @@ public:
 			ChanTransmit(szCmdBct, szLine);
 			if (SET->IRCMode && !SET->SilentOutMsg)
 			{
-				char szTemp[MAX_STRING] = { 0 };
-				int iSrc = 0;
-				int iDest = 0;
-				int iLen = 0;
+				char szTemp[MAX_STRING] = {0};
+                int iSrc                = 0;
+                int iDest               = 0;
+                int iLen                = 0;
 
-				iLen = strlen(szLine);
+				iLen   = strlen(szLine);
 				iDest += WriteStringGetCount(&szTemp[iDest], COLOR_STELL1);
 				while (szLine[iSrc] != ' ' && szLine[iSrc] != '\n' && iSrc <= iLen)
 				{
@@ -998,8 +1002,8 @@ public:
 
 		char  szTemp1[MAX_STRING] = { 0 };
 		char  szTemp2[MAX_STRING] = { 0 };
-		char* szArg = NULL;
-		char  szCmdChan[] = CMD_CHANNELS;
+        char* szArg                = NULL;
+        char  szCmdChan[]          = CMD_CHANNELS;
 		char *next_token1 = NULL;
 		if (char* pName = GetCharName()) {
 
@@ -1054,8 +1058,8 @@ public:
 			Disconnect(true);
 		}
 
-		char szMsg[MAX_STRING] = { 0 };
-		char szTemp[MAX_STRING] = { 0 };
+		char szMsg[MAX_STRING]    = { 0 };
+		char szTemp[MAX_STRING]   = { 0 };
 		char szPass[MAX_PASSWORD] = { 0 };
 
 		SetPlayer();
@@ -1171,7 +1175,7 @@ public:
 				sprintf_s(szOutput, "\ar#\ax - %s has left the server.", &pRawmsg[7]);
 				WriteOut(szOutput);
 				if (SET->NameAnnounce)
-				{
+				{ 
 					EQBC->Names(); //Now requests for names occurs when -anyone- disconnects.
 				}
 			}
@@ -1557,7 +1561,7 @@ private:
 				{
 					pcReadBuf[LastReadPos] = '\0';
 					strcpy_s(Buffer, pcReadBuf);
-					HandleIncomingString(Buffer, false);
+					HandleIncomingString(Buffer,false);
 					LastReadPos = -1;
 				}
 				//break;
@@ -1651,11 +1655,11 @@ private:
 							//								pChar->zoneId, pChar2->Level, GetClassDesc(pChar2->Class), pEverQuest->GetRaceDesc(pChar2->Race), pChar->Exp,
 							//								pChar->AAExp, pChar2->AAPoints,pSpawn->StandState, (pSpawn->PetID == 0xFFFFFFFF) ? '0' : '1');
 							// Extended version for jimbob's eqbci Interface for MQ2EQBCS
-#if !defined(ROF2EMU) && !defined(UFEMU)
+							#if !defined(ROF2EMU) && !defined(UFEMU)
 							sprintf_s(szBuff, "1|%d|%d|%d|%d|%d|%d|%d|%d|%s|%s|%I64d|%d|%d|%c|%c|%s|%f|%f|%f|%s|%d|%lld|%lld|%d|%s",
-#else
+							#else
 							sprintf_s(szBuff, "1|%d|%d|%d|%d|%d|%d|%d|%d|%s|%s|%I64d|%d|%d|%c|%c|%s|%f|%f|%f|%s|%d|%d|%d|%d|%s",
-#endif
+							#endif
 								GetCurHPS(), GetMaxHPS(), GetCurMana(), GetMaxMana(), GetCurEndurance(), GetMaxEndurance(),
 								pChar->zoneId, pChar2->Level, GetClassDesc(pChar2->Class), pEverQuest->GetRaceDesc(pChar2->Race), pChar->Exp,
 								pChar->AAExp, pChar2->AAPoints, pSpawn->StandState, (pSpawn->PetID == 0xFFFFFFFF) ? '0' : '1',
@@ -1887,13 +1891,13 @@ class EQBCType : public MQ2Type
 public:
 	enum VarMembers
 	{
-		Connected = 1,
-		Server = 2,
-		Port = 3,
-		ToonName = 4,
-		Setting = 5,
-		Names = 6,
-		GotNames = 7,
+        Connected = 1,
+        Server    = 2,
+        Port      = 3,
+        ToonName  = 4,
+        Setting   = 5,
+		Names     = 6,
+		GotNames  = 7,
 	};
 	EQBCType();
 	bool GetMember(MQ2VARPTR VarPtr, char* Member, char* Index, MQ2TYPEVAR &Dest);
@@ -2420,12 +2424,12 @@ PLUGIN_API unsigned long OnIncomingChat(char* szLine, unsigned long ulColor)
 {
 	if (!ValidIngame() || !EQBC->Connected || szLine[0] != '\x12') return 0;
 
-	PSPAWNINFO    pLPlayer = (PSPAWNINFO)pLocalPlayer;
-	char          szSender[MAX_STRING] = { 0 };
-	char          szTell[MAX_STRING] = { 0 };
-	char          szOutgoing[MAX_STRING] = { 0 };
-	char*         pszText = NULL;
-	unsigned long n = strchr(&szLine[2], '\x12') - &szLine[2];
+    PSPAWNINFO    pLPlayer               = (PSPAWNINFO)pLocalPlayer;
+    char          szSender[MAX_STRING]   = {0};
+    char          szTell[MAX_STRING]     = {0};
+    char          szOutgoing[MAX_STRING] = {0};
+    char*         pszText                = NULL;
+    unsigned long n                      = strchr(&szLine[2], '\x12') - &szLine[2];
 
 	strncpy_s(szSender, &szLine[2], n);
 
