@@ -425,7 +425,7 @@ public:
 	CXWnd*             OutWnd;
 	struct _CSIDLWND*  OutStruct;
 
-	CEQBCWnd(CXStr* Template) : CCustomWnd(Template)
+	CEQBCWnd(CXStr& Template) : CCustomWnd(Template)
     {
         iCurCommand = -1;
         SetWndNotification(CEQBCWnd);
@@ -664,8 +664,7 @@ private:
 	{
 		char szWindowText[MAX_STRING] = { 0 };
 		sprintf_s(szWindowText, "%s", szServer);
-		class CXStr ChatWnd("ChatWindow");
-		BCWnd = new CEQBCWnd(&ChatWnd);
+		BCWnd = new CEQBCWnd(CXStr("ChatWindow"));
 
         SET->CustTitle         = GetPrivateProfileInt(SET->SaveByChar ? szCharName : "Window", "UseMyTitle",   0,    INIFileName);
 		//left top right bottom
