@@ -14,6 +14,9 @@
 // v16.4 - Sym added SaveConnectByChar setting to autoconnect to different servers/ports per character
 // v16.4 - Chatwiththisname - No version change, made it so TLO EQBC.Names is updated anytime someone connects or disconnects.
 // v16.5 - Redbot 5-30-2018 added "NameAnnounce" setting to hide name spam.
+// v19.0605 - jimbob - Added "Silent" commands for /bc commands - /bcsa, /bcsaa, /bcsg, /bcsga, /bcst
+//          - Also changed MODULE_VERSION to be YY.MMDD of latest change.
+//			- Also added Watch Raid Say option, 'cause Why not?!
 /***************************************************************/
 
 
@@ -22,13 +25,13 @@
 using namespace std;
 #include <vector>
 const char*        MODULE_NAME        = "MQ2EQBC";
-const double       MODULE_VERSION     = 16.4;
+const double       MODULE_VERSION     = 19.0605;
 PreSetup(MODULE_NAME);
 PLUGIN_VERSION(MODULE_VERSION);
 
 // --------------------------------------
 // constants
-const char*        PROG_VERSION       = "MQ2EQBC 15.0503";
+const char*        PROG_VERSION       = "MQ2EQBC 16.600";
 const char*        CONNECT_START      = "LOGIN";
 const char*        CONNECT_START2     = "=";
 const char*        CONNECT_END        = ";";
@@ -55,6 +58,9 @@ const int          MAX_PASSWORD       = 40; // do not change without checking ou
 #define CMD_CHANNELS "\tCHANNELS\n"
 #define CMD_LOCALECHO "\tLOCALECHO "
 #define CMD_BCI "\tBCI\n"
+#define CMD_STELL "\tSTELL\n"
+#define CMD_SMSGALL "\tSMSGALL\n"
+
 
 // commands & settings
 const char* VALID_COMMANDS     = "connect quit help status reconnect names version colordump channels stopreconnect forceconnect iniconnect";
@@ -80,6 +86,7 @@ const char* szSetAutoReconnect = "reconnect";
 const char* szSetWindow        = "window";
 const char* szSetLocalEcho     = "localecho";
 const char* szSetTellWatch     = "tellwatch";
+const char* szSetRaidWatch     = "raidwatch";
 const char* szSetGuildWatch    = "guildwatch";
 const char* szSetGroupWatch    = "groupwatch";
 const char* szSetFSWatch       = "fswatch";
@@ -179,6 +186,7 @@ public:
 	int WatchGroup;
 	int WatchGuild;
 	int WatchTell;
+	int WatchRaid;
 	int Window;
 	int SaveConnectByChar;
 	int NameAnnounce;
@@ -206,7 +214,8 @@ public:
         WatchGroup    = GetPrivateProfileInt("Settings", "GroupWatch",             0, INIFileName);
         WatchGuild    = GetPrivateProfileInt("Settings", "GuildWatch",             0, INIFileName);
         WatchTell     = GetPrivateProfileInt("Settings", "TellWatch",              0, INIFileName);
-        Window        = GetPrivateProfileInt("Settings", "UseWindow",              0, INIFileName);
+		WatchRaid     = GetPrivateProfileInt("Settings", "RaidWatch",              0, INIFileName);
+		Window        = GetPrivateProfileInt("Settings", "UseWindow",              0, INIFileName);
 		SaveConnectByChar = GetPrivateProfileInt("Settings", "SaveConnectByCharacter", 1, INIFileName);
 		NameAnnounce = GetPrivateProfileInt("Settings", "NameAnnounce", 1, INIFileName);
 
@@ -331,6 +340,10 @@ public:
 			{
 				ToggleSetting(&WatchTell, &bToggle, &bTurnOn, "TellWatch", "Relay all tells to /bc");
 			}
+			else if (!_strnicmp(szArg, szSetRaidWatch, sizeof(szArg)))
+			{
+				ToggleSetting(&WatchRaid, &bToggle, &bTurnOn, "RaidWatch", "Relay all raid to /bc");
+			}
 			else if (!_strnicmp(szArg, szSetSaveByChar, sizeof(szArg)))
 			{
 				ToggleSetting(&SaveByChar, &bToggle, &bTurnOn, "SaveByCharacter", "Save UI data by character name");
@@ -390,7 +403,8 @@ public:
         WatchGroup    = 0;
         WatchGuild    = 0;
         WatchTell     = 0;
-        Window        = 0;
+		WatchRaid     = 0;
+		Window        = 0;
 		SaveConnectByChar = 1;
 		NameAnnounce  = 1;
 		memset(&WndKey, 0, MAX_STRING);
@@ -854,11 +868,12 @@ public:
 		}
 	};
 
-	void BCG(char* szLine)
+	void BCG(char* szLine, bool silent=false)
 	{
 		if (!ConnectReady()) return;
 		PCHARINFO pChar = GetCharInfo();
-		char szCmdBct[] = CMD_TELL;
+		//char szCmdBct[] = (silent == false ? CMD_STELL : CMD_TELL); // ? : in assignment won't work with char name[] type string pointer.
+		char *szCmdBct = (silent ? CMD_STELL : CMD_TELL);
 		if (szLine && strlen(szLine))
 		{
 			for (DWORD N = 1; N<6; N++) {
@@ -868,7 +883,7 @@ public:
 					strcat_s(Name, " ");
 					strcat_s(Name, szLine);
 					ChanTransmit(szCmdBct, Name);
-					if (SET->IRCMode && !SET->SilentOutMsg)
+					if (SET->IRCMode && !(SET->SilentOutMsg  || silent))
 					{
 						char szTemp[MAX_STRING] = {0};
 						int iSrc                = 0;
@@ -895,11 +910,12 @@ public:
 		}
 	};
 
-	void BCGA(char* szLine)
+	void BCGA(char* szLine, bool silent=false)
 	{
 		if (!ConnectReady()) return;
 		PCHARINFO pChar = GetCharInfo();
-		char szCmdBct[] = CMD_TELL;
+		//char szCmdBct[] = CMD_TELL;
+		char *szCmdBct = (silent ? CMD_STELL : CMD_TELL);
 		if (szLine && strlen(szLine))
 		{
 			for (DWORD N = 0; N<6; N++) {
@@ -909,7 +925,7 @@ public:
 					strcat_s(Name, " ");
 					strcat_s(Name, szLine);
 					ChanTransmit(szCmdBct, Name);
-					if (SET->IRCMode && !SET->SilentOutMsg)
+					if (SET->IRCMode && !(SET->SilentOutMsg || silent))
 					{
 						char szTemp[MAX_STRING] = { 0 };
 						int iSrc = 0;
@@ -936,14 +952,15 @@ public:
 		}
 	};
 
-	void BCT(char* szLine)
+	void BCT(char* szLine, bool silent=false)
 	{
 		if (!ConnectReady()) return;
-		char szCmdBct[] = CMD_TELL;
+		//char szCmdBct[] = CMD_TELL;
+		char *szCmdBct = (silent ? CMD_STELL : CMD_TELL);
 		if (szLine && strlen(szLine))
 		{
 			ChanTransmit(szCmdBct, szLine);
-			if (SET->IRCMode && !SET->SilentOutMsg)
+			if (SET->IRCMode && !(SET->SilentOutMsg || silent))
 			{
 				char szTemp[MAX_STRING] = {0};
                 int iSrc                = 0;
@@ -968,32 +985,34 @@ public:
 		}
 	};
 
-	bool BCA(char* szLine)
+	bool BCA(char* szLine, bool silent=false)
 	{
 		if (!ConnectReady()) return false;
 
-		char szCmdAll[] = CMD_MSGALL;
+		//char szCmdAll[] = CMD_MSGALL;
+		char *szCmdAll = (silent ? CMD_SMSGALL : CMD_MSGALL);
 		if (szLine && strlen(szLine))
 		{
 			if (SET->EchoAll)
 			{
 				char szTemp[MAX_STRING] = { 0 };
 				sprintf_s(szTemp, "<%s> [+r+]([+o+]to all[+r+])[+w+] %s", ((PSPAWNINFO)pLocalPlayer)->Name, szLine);
-				HandleIncomingString(szTemp, false);
+				HandleIncomingString(szTemp, false, silent);
 			}
 			ChanTransmit(szCmdAll, szLine);
 		}
 		return true;
 	};
 
-	void BCAA(PSPAWNINFO pLPlayer, char* szLine)
+	void BCAA(PSPAWNINFO pLPlayer, char* szLine, bool silent=false)
 	{
-		if (!BCA(szLine)) return;
+		if (!BCA(szLine, silent)) return;
 
 		char szTemp[MAX_STRING] = { 0 };
 		sprintf_s(szTemp, "<%s> %s %s", pLPlayer->Name, pLPlayer->Name, szLine);
-		HandleIncomingString(szTemp, true);
+		HandleIncomingString(szTemp, true, silent);
 	};
+
 	void HandleChannels(PCHAR szLine, SIZE_T BufferSize)
 	{
 		if (!ConnectReady())
@@ -1181,7 +1200,7 @@ public:
 			SendNetBotEvent(pRawmsg);
 		}
 	};
-	template <unsigned int _Size>void HandleIncomingString(CHAR(&pRawmsg)[_Size], bool bForce)
+	template <unsigned int _Size>void HandleIncomingString(CHAR(&pRawmsg)[_Size], bool bForce, bool silent=false)
 	{
 		if (!pRawmsg) return;
 		char szTemp[MAX_STRING] = { 0 };
@@ -1266,6 +1285,11 @@ public:
 						iCharCount = 0;
 						break;
 					}
+					case '!': // Sneaky jimbob way to cheat silence! I don't think ! can be in the username?
+					{
+						silent = true;
+						break;
+					}
 					case '[':
 					{
 						iDest += WriteStringGetCount(&szTemp[iDest], COLOR_NAME_BRACKET);
@@ -1325,7 +1349,7 @@ public:
 			}
 			CHAR Buffer[MAX_STRING] = { 0 };
 			strcpy_s(Buffer, pszCmdStart);
-			HandleIncomingCmd(Buffer, bForce);
+			HandleIncomingCmd(Buffer, bForce, silent);
 			if (SET->SilentIncCmd) return;
 		}
 		if (char *pDest = strstr(szTemp, "- Names: ")) {//szTemp
@@ -1347,7 +1371,8 @@ public:
 			}
 			bGotNames = true;
 		}
-		WriteOut(szTemp);
+		if(!silent)
+			WriteOut(szTemp);
 	};
 
 	void Disconnect(bool bSend)
@@ -1593,7 +1618,7 @@ private:
 			LastPing = 0;
 		}
 	};
-	template <unsigned int _Size>void HandleIncomingCmd(CHAR(&pszCmd)[_Size], bool bForce)
+	template <unsigned int _Size>void HandleIncomingCmd(CHAR(&pszCmd)[_Size], bool bForce, bool silent=false)
 	{
 		if (!pszCmd)
 			return;
@@ -1625,7 +1650,7 @@ private:
 			}
 			return;
 		}
-		if (!SET->SilentCmd)
+		if (!(SET->SilentCmd || silent))
 		{
 			sprintf_s(szTemp, "\ar#\ax CMD: [%s]", pszCmd);
 			WriteOut(szTemp);
@@ -1952,6 +1977,10 @@ bool EQBCType::OptStatus(char* Index)
 	{
 		iOption = &SET->WatchTell;
 	}
+	else if (!_stricmp(Index, szSetRaidWatch))
+	{
+		iOption = &SET->WatchRaid;
+	}
 	else if (!_stricmp(Index, szSetGuildWatch))
 	{
 		iOption = &SET->WatchGuild;
@@ -2088,6 +2117,14 @@ void OutputHelp()
 	WriteOut("\ar#\ax \ay/bct ToonName //command\ax (send Command to ToonName)");
 	WriteOut("\ar#\ax \ay/bca //command\ax (send Command to all connected names EXCLUDING yourself)");
 	WriteOut("\ar#\ax \ay/bcaa //command\ax (send Command to all connected names INCLUDING yourself)");
+	WriteOut("\ar#\ax \ay/bcsg your text\ax (silently send your text to Group)");
+	WriteOut("\ar#\ax \ay/bcsg //command\ax (silently send Command to Group)");
+	WriteOut("\ar#\ax \ay/bcsga your text\ax (silently send your text to Group including yourself)");
+	WriteOut("\ar#\ax \ay/bcsga //command\ax (silently send Command to Group including yourself)");
+	WriteOut("\ar#\ax \ay/bcst ToonName your text\ax (silently send your text to specific Toon)");
+	WriteOut("\ar#\ax \ay/bcst ToonName //command\ax (silently send Command to ToonName)");
+	WriteOut("\ar#\ax \ay/bcsa //command\ax (silently send Command to all connected names EXCLUDING yourself)");
+	WriteOut("\ar#\ax \ay/bcsaa //command\ax (silently send Command to all connected names INCLUDING yourself)");
 	WriteOut("\ar#\ax \ay/bccmd connect <server> <port> <pw>\ax (defaults: 127.0.0.1 2112)");
 	WriteOut("\ar#\ax \ay/bccmd forceconnect <server> <port> <pw>\ax (defaults: 127.0.0.1 2112)");
 	WriteOut("\ar#\ax \ay/bccmd iniconnect [INIKeyName]");
@@ -2270,6 +2307,36 @@ void BcaaCmd(PSPAWNINFO pLPlayer, char* szLine)
 	EQBC->BCAA(pLPlayer, szLine);
 }
 
+// bcsg
+void BcsgCmd(PSPAWNINFO pLPlayer, char* szLine)
+{
+	EQBC->BCG(szLine, true);
+}
+
+// bcsga
+void BcsgaCmd(PSPAWNINFO pLPlayer, char* szLine)
+{
+	EQBC->BCGA(szLine, true);
+}
+
+// bcst
+void BcstCmd(PSPAWNINFO pLPlayer, char* szLine)
+{
+	EQBC->BCT(szLine, true);
+}
+
+// bcsa
+void BcsaCmd(PSPAWNINFO pLPlayer, char* szLine)
+{
+	EQBC->BCA(szLine, true);
+}
+
+// bcsaa
+void BcsaaCmd(PSPAWNINFO pLPlayer, char* szLine)
+{
+	EQBC->BCAA(pLPlayer, szLine, true);
+}
+
 // bcclear
 void ClearWndCmd(PSPAWNINFO pLPlayer, char* szLine)
 {
@@ -2432,6 +2499,15 @@ PLUGIN_API unsigned long OnIncomingChat(char* szLine, unsigned long ulColor)
 
 	strncpy_s(szSender, &szLine[2], n);
 
+	if (SET->WatchRaid && ulColor == USERCOLOR_RAID)
+	{
+		pszText = GetNextArg(szLine, 1, FALSE, '\'');
+		strcpy_s(szTell, pszText);
+		szTell[strlen(pszText) - 1] = '\0';
+		sprintf_s(szOutgoing, "RSAY from %s: %s", szSender, szTell);
+		EQBC->BC(szOutgoing);
+		return 0;
+	}
 	if (SET->WatchTell && ulColor == USERCOLOR_TELL)
 	{
 		pszText = GetNextArg(szLine, 1, FALSE, '\'');
@@ -2479,6 +2555,11 @@ PLUGIN_API void InitializePlugin()
 	AddCommand("/bct", BctCmd);
 	AddCommand("/bca", BcaCmd);
 	AddCommand("/bcaa", BcaaCmd);
+	AddCommand("/bcsg", BcsgCmd);
+	AddCommand("/bcsga", BcsgaCmd);
+	AddCommand("/bcst", BcstCmd);
+	AddCommand("/bcsa", BcsaCmd);
+	AddCommand("/bcsaa", BcsaaCmd);
 	AddCommand("/bccmd", BccmdCmd);
 	AddCommand("/bcclear", ClearWndCmd);
 	AddCommand("/bcfont", WndFontCmd);
@@ -2510,6 +2591,11 @@ PLUGIN_API void ShutdownPlugin()
 	RemoveCommand("/bct");
 	RemoveCommand("/bca");
 	RemoveCommand("/bcaa");
+	RemoveCommand("/bcsg");
+	RemoveCommand("/bcsga");
+	RemoveCommand("/bcst");
+	RemoveCommand("/bcsa");
+	RemoveCommand("/bcsaa");
 	RemoveCommand("/bccmd");
 	RemoveCommand("/bcclear");
 	RemoveCommand("/bcfont");
