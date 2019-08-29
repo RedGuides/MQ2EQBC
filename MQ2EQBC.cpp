@@ -2380,7 +2380,7 @@ PLUGIN_API unsigned short isConnected()
 	return (EQBC->Connected ? 1 : 0);
 }
 
-PLUGIN_API bool AreTheyConnected(char* szName)
+PLUGIN_API bool AreTheyConnected(const char* szName)
 {
 	if (std::find(connectedcharacters.begin(), connectedcharacters.end(), szName) != connectedcharacters.end())
 	{
