@@ -553,6 +553,17 @@ public:
 		}
 		return CSidlScreenWnd::WndNotification(pWnd, uiMessage, pData);
 	};
+
+	void Clear()
+	{
+		if (OutWnd)
+		{
+			OutWnd->SetSTMLText("");
+			OutWnd->ForceParseNow();
+			OutWnd->SetVScrollPos(OutWnd->GetVScrollMax());
+		}
+	}
+
 private:
 	std::vector<std::string> sCmdHistory;
 	int            iCurCommand;
@@ -591,19 +602,19 @@ public:
 	void Clear()
 	{
 		if (!BCWnd) return;
-		((CChatWindow*)BCWnd)->Clear();
+		BCWnd->Clear();
 	};
 
 	void Hover()
 	{
 		if (!BCWnd) return;
-		((CXWnd*)BCWnd)->DoAllDrawing();
+		BCWnd->DoAllDrawing();
 	};
 
 	void Min()
 	{
 		if (!BCWnd) return;
-		((CXWnd*)BCWnd)->OnMinimizeBox();
+		BCWnd->OnMinimizeBox();
 	};
 
 	void Save()
