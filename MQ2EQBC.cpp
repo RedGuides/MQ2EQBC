@@ -21,8 +21,7 @@
 
 
 #pragma comment(lib,"wsock32.lib")
-#include "../MQ2Plugin.h"
-using namespace std;
+#include "../../MQ2Plugin.h"
 #include <vector>
 const char*        MODULE_NAME        = "MQ2EQBC";
 const double       MODULE_VERSION     = 19.0605;
@@ -434,34 +433,29 @@ private:
 class CEQBCWnd : public CCustomWnd
 {
 public:
-	CTextEntryWnd*     InputBox;
-	CStmlWnd*          StmlOut;
-	CXWnd*             OutWnd;
-	struct _CSIDLWND*  OutStruct;
+	CEditWnd*          InputBox;
+	CStmlWnd*          OutWnd;
 
-	CEQBCWnd(CXStr& Template) : CCustomWnd(Template)
+	CEQBCWnd(const CXStr& Template) : CCustomWnd(Template)
     {
         iCurCommand = -1;
-        SetWndNotification(CEQBCWnd);
-        StmlOut = (CStmlWnd *)GetChildItem("CW_ChatOutput");
+		OutWnd = (CStmlWnd *)GetChildItem("CW_ChatOutput");
 		RemoveStyle(CWS_TRANSPARENT);
 		AddStyle(CWS_RESIZEBORDER | CWS_TITLE | CWS_MINIMIZE);
 
         SetBGColor(0xFF000000);//black background
-        OutWnd = (CXWnd*)StmlOut;
         OutWnd->SetClickable(1);
-        OutStruct = (_CSIDLWND *)GetChildItem("CW_ChatOutput");
-        InputBox = (CTextEntryWnd*)GetChildItem("CW_ChatInput");
+        InputBox = (CEditWnd*)GetChildItem("CW_ChatInput");
         InputBox->AddStyle(0x800C0);
         InputBox->SetCRNormal(0xFFFFFFFF);
         SetEscapable(0);
         InputBox->SetMaxChars(512);
         RemoveStyle(CWS_CLOSE);
         //        *(unsigned long*)&(((char*)StmlOut)[EQ_CHAT_HISTORY_OFFSET]) = 400;
-        StmlOut->MaxLines = 400;
+        OutWnd->MaxLines = 400;
     };
 
-	int WndNotification(CXWnd* pWnd, unsigned int uiMessage, void* pData)
+	virtual int WndNotification(CXWnd* pWnd, unsigned int uiMessage, void* pData) override
 	{
 		//static char szBCAA[] = "/bcaa "; // trailing space intentional
 		if (pWnd == (CXWnd*)InputBox)
@@ -469,7 +463,7 @@ public:
 			if (uiMessage == XWM_HITENTER)
 			{
 				char szBuffer[MAX_STRING] = { 0 };
-				GetCXStr((PCXSTR)InputBox->InputText, szBuffer, MAX_STRING);
+				strcpy_s(szBuffer, InputBox->InputText.c_str());
 				if (szBuffer[0])
 				{
 					if (!sCmdHistory.size() || sCmdHistory.front().compare(szBuffer))
@@ -478,10 +472,10 @@ public:
 						{
 							sCmdHistory.pop_back();
 						}
-						sCmdHistory.insert(sCmdHistory.begin(), string(szBuffer));
+						sCmdHistory.insert(sCmdHistory.begin(), std::string(szBuffer));
 					}
 					iCurCommand = -1;
-					SetCXStr(&InputBox->InputText, "");
+					InputBox->InputText = "";
 					if (szBuffer[0] == '/')
 					{
 						DoCommand((PSPAWNINFO)pLocalPlayer, szBuffer);
@@ -505,7 +499,7 @@ public:
 						iCurCommand++;
 						if (iCurCommand < (int)sCmdHistory.size() && iCurCommand >= 0)
 						{
-							string s = (string)sCmdHistory.at(iCurCommand);
+							std::string s = (std::string)sCmdHistory.at(iCurCommand);
 							((CXWnd*)InputBox)->SetWindowTextA(CXStr(s.c_str()));
 						}
 						else
@@ -522,14 +516,14 @@ public:
 						iCurCommand--;
 						if (iCurCommand >= 0 && sCmdHistory.size() > 0)
 						{
-							string s = (string)sCmdHistory.at(iCurCommand);
+							std::string s = (std::string)sCmdHistory.at(iCurCommand);
 							((CXWnd*)InputBox)->SetWindowTextA(CXStr(s.c_str()));
 						}
 						else if (iCurCommand < 0)
 						{
 							iCurCommand = -1;
 							// Hit bottom.
-							SetCXStr(&InputBox->InputText, "");
+							InputBox->InputText = "";
 						}
 					}
 					ResetKeybinds();
@@ -545,14 +539,14 @@ public:
 		else if (uiMessage == XWM_LINK)
 		{
 			class CChatWindow* p = (class CChatWindow*)this;
-			if (StmlOut != (CStmlWnd*)pWnd)
+			if (OutWnd != (CStmlWnd*)pWnd)
 			{
 				CStmlWnd* pTmp = NULL;
 				int iRet = 0;
-				pTmp = StmlOut;
-				StmlOut = (CStmlWnd*)pWnd;
+				pTmp = OutWnd;
+				OutWnd = (CStmlWnd*)pWnd;
 				iRet = p->WndNotification(pWnd, uiMessage, pData);
-				StmlOut = pTmp;
+				OutWnd = pTmp;
 				return iRet;
 			}
 			return p->WndNotification(pWnd, uiMessage, pData);
@@ -560,7 +554,7 @@ public:
 		return CSidlScreenWnd::WndNotification(pWnd, uiMessage, pData);
 	};
 private:
-	vector<string> sCmdHistory;
+	std::vector<std::string> sCmdHistory;
 	int            iCurCommand;
 
 	void WriteToBC(char*);
@@ -633,31 +627,26 @@ public:
 	void UpdateTitle()
 	{
 		if (!BCWnd || SET->CustTitle) return;
-		char szWindowText[MAX_STRING] = { 0 };
-		GetCXStr(BCWnd->CGetWindowText(), szWindowText);
-		if (_strnicmp(szWindowText, szServer, sizeof(szWindowText)))
-		{
-			BCWnd->CSetWindowText(szServer);
-			//SetCXStr(&BCWnd->WindowText, szServer);
-		}
+		if (!ci_equals(BCWnd->GetWindowText(), szServer))
+			BCWnd->SetWindowTextA(szServer);
 	};
 
-	void Keybind(int iDown)
+	void Keybind(bool down)
 	{
 		if (!ValidIngame() || !BCWnd) return;
-		if (iDown)
+		if (down)
 		{
 			if (!KeyActive)
 			{
-				CXRect rect = ((CXWnd*)BCWnd->InputBox)->GetScreenRect();
+				CXRect rect = BCWnd->InputBox->GetScreenRect();
 				CXPoint pt  = rect.CenterPoint();
-				((CXWnd*)BCWnd->InputBox)->SetWindowTextA(CXStr(""));
-				((CXWnd*)BCWnd->InputBox)->HandleLButtonDown(&pt, 0);
+				BCWnd->InputBox->SetWindowTextA("");
+				BCWnd->InputBox->HandleLButtonDown(pt, 0);
 				KeyActive = true;
 				return;
 			}
-			SetCXStr(&BCWnd->InputBox->InputText, "");
-			((CXWnd*)BCWnd->InputBox)->ClrFocus();
+			BCWnd->InputBox->InputText = "";
+			BCWnd->InputBox->ClrFocus();
 			KeyActive = false;
 		}
 	};
@@ -678,7 +667,7 @@ private:
 	{
 		char szWindowText[MAX_STRING] = { 0 };
 		sprintf_s(szWindowText, "%s", szServer);
-		BCWnd = new CEQBCWnd(CXStr("ChatWindow"));
+		BCWnd = new CEQBCWnd("ChatWindow");
 
         SET->CustTitle         = GetPrivateProfileInt(SET->SaveByChar ? szCharName : "Window", "UseMyTitle",   0,    INIFileName);
 		//left top right bottom
@@ -706,45 +695,43 @@ private:
 		{
 			GetPrivateProfileString(SET->SaveByChar ? szCharName : "Window", "WindowTitle", szWindowText, szWindowText, MAX_STRING, INIFileName);
 		}
-		BCWnd->CSetWindowText(szWindowText);
+		BCWnd->SetWindowTextA(szWindowText);
 		//SetCXStr(&BCWnd->WindowText, szWindowText);
-		((CXWnd*)BCWnd)->Show(1, 1);
-		BCWnd->OutStruct->RemoveStyle(CWS_CLOSE);
+		BCWnd->Show(1, 1);
+		BCWnd->OutWnd->RemoveStyle(CWS_CLOSE);
 		//BitOff(BCWnd->OutStruct->WindowStyle, CWS_CLOSE);
 	};
 
 	void SaveWnd()
 	{
 		//return;
-		PCSIDLWND UseWnd = (PCSIDLWND)BCWnd;
         char szTemp[2048]              = {0};
 
-        WritePrivateProfileString(SET->SaveByChar ? szCharName : "Window", "ChatTop",      SafeItoa(UseWnd->GetLocation().top,    szTemp, 10), INIFileName);
-        WritePrivateProfileString(SET->SaveByChar ? szCharName : "Window", "ChatBottom",   SafeItoa(UseWnd->GetLocation().bottom, szTemp, 10), INIFileName);
-        WritePrivateProfileString(SET->SaveByChar ? szCharName : "Window", "ChatLeft",     SafeItoa(UseWnd->GetLocation().left,   szTemp, 10), INIFileName);
-        WritePrivateProfileString(SET->SaveByChar ? szCharName : "Window", "ChatRight",    SafeItoa(UseWnd->GetLocation().right,  szTemp, 10), INIFileName);
-        WritePrivateProfileString(SET->SaveByChar ? szCharName : "Window", "Fades",        SafeItoa(UseWnd->GetFades(),           szTemp, 10), INIFileName);
-        WritePrivateProfileString(SET->SaveByChar ? szCharName : "Window", "Alpha",        SafeItoa(UseWnd->GetAlpha(),           szTemp, 10), INIFileName);
-        WritePrivateProfileString(SET->SaveByChar ? szCharName : "Window", "FadeToAlpha",  SafeItoa(UseWnd->GetFadeToAlpha(),     szTemp, 10), INIFileName);
-        WritePrivateProfileString(SET->SaveByChar ? szCharName : "Window", "Duration",     SafeItoa(UseWnd->GetFadeDuration(),    szTemp, 10), INIFileName);
-        WritePrivateProfileString(SET->SaveByChar ? szCharName : "Window", "Locked",       SafeItoa(UseWnd->IsLocked(),          szTemp, 10), INIFileName);
-        WritePrivateProfileString(SET->SaveByChar ? szCharName : "Window", "Delay",        SafeItoa(UseWnd->GetFadeDelay(),   szTemp, 10), INIFileName);
-        WritePrivateProfileString(SET->SaveByChar ? szCharName : "Window", "BGType",       SafeItoa(UseWnd->GetBGType(),          szTemp, 10), INIFileName);
+        WritePrivateProfileString(SET->SaveByChar ? szCharName : "Window", "ChatTop",      SafeItoa(BCWnd->GetLocation().top,    szTemp, 10), INIFileName);
+        WritePrivateProfileString(SET->SaveByChar ? szCharName : "Window", "ChatBottom",   SafeItoa(BCWnd->GetLocation().bottom, szTemp, 10), INIFileName);
+        WritePrivateProfileString(SET->SaveByChar ? szCharName : "Window", "ChatLeft",     SafeItoa(BCWnd->GetLocation().left,   szTemp, 10), INIFileName);
+        WritePrivateProfileString(SET->SaveByChar ? szCharName : "Window", "ChatRight",    SafeItoa(BCWnd->GetLocation().right,  szTemp, 10), INIFileName);
+        WritePrivateProfileString(SET->SaveByChar ? szCharName : "Window", "Fades",        SafeItoa(BCWnd->GetFades(),           szTemp, 10), INIFileName);
+        WritePrivateProfileString(SET->SaveByChar ? szCharName : "Window", "Alpha",        SafeItoa(BCWnd->GetAlpha(),           szTemp, 10), INIFileName);
+        WritePrivateProfileString(SET->SaveByChar ? szCharName : "Window", "FadeToAlpha",  SafeItoa(BCWnd->GetFadeToAlpha(),     szTemp, 10), INIFileName);
+        WritePrivateProfileString(SET->SaveByChar ? szCharName : "Window", "Duration",     SafeItoa(BCWnd->GetFadeDuration(),    szTemp, 10), INIFileName);
+        WritePrivateProfileString(SET->SaveByChar ? szCharName : "Window", "Locked",       SafeItoa(BCWnd->IsLocked(),           szTemp, 10), INIFileName);
+        WritePrivateProfileString(SET->SaveByChar ? szCharName : "Window", "Delay",        SafeItoa(BCWnd->GetFadeDelay(),       szTemp, 10), INIFileName);
+        WritePrivateProfileString(SET->SaveByChar ? szCharName : "Window", "BGType",       SafeItoa(BCWnd->GetBGType(),          szTemp, 10), INIFileName);
 
 		ARGBCOLOR col = { 0 };
-		col.ARGB = UseWnd->GetBGColor();
-		WritePrivateProfileString(SET->SaveByChar ? szCharName : "Window", "BGTint.alpha",   SafeItoa(col.A,       szTemp, 10), INIFileName);
+		col.ARGB = BCWnd->GetBGColor();
+		WritePrivateProfileString(SET->SaveByChar ? szCharName : "Window", "BGTint.alpha", SafeItoa(col.A,       szTemp, 10), INIFileName);
 		WritePrivateProfileString(SET->SaveByChar ? szCharName : "Window", "BGTint.red",   SafeItoa(col.R,       szTemp, 10), INIFileName);
         WritePrivateProfileString(SET->SaveByChar ? szCharName : "Window", "BGTint.green", SafeItoa(col.G,       szTemp, 10), INIFileName);
         WritePrivateProfileString(SET->SaveByChar ? szCharName : "Window", "BGTint.blue",  SafeItoa(col.B,       szTemp, 10), INIFileName);
-        WritePrivateProfileString(SET->SaveByChar ? szCharName : "Window", "FontSize",     SafeItoa(FontSize,                szTemp, 10), INIFileName);
-        GetCXStr(UseWnd->CGetWindowText(), szTemp,MAX_STRING);
-        WritePrivateProfileString(SET->SaveByChar ? szCharName : "Window", "WindowTitle",                                szTemp,      INIFileName);
+        WritePrivateProfileString(SET->SaveByChar ? szCharName : "Window", "FontSize",     SafeItoa(FontSize,    szTemp, 10), INIFileName);
+        WritePrivateProfileString(SET->SaveByChar ? szCharName : "Window", "WindowTitle",  BCWnd->GetWindowText().c_str(),    INIFileName);
 	};
 
 	void Output(char* szText)
 	{
-		((CXWnd*)BCWnd)->Show(1, 1);
+		BCWnd->Show(1, 1);
 		bool bScrollDown = (BCWnd->OutWnd->GetVScrollPos() == BCWnd->OutWnd->GetVScrollMax()) ? true : false;
 		char szProcessed[MAX_STRING] = { 0 };
 		StripMQChat(szText, szProcessed);
@@ -753,31 +740,20 @@ private:
 		strcat_s(szProcessed, "<br>");
 		CXStr NewText(szProcessed);
 		ConvertItemTags(NewText, TRUE);
-		(BCWnd->StmlOut)->AppendSTML(NewText);
-		if (bScrollDown) (BCWnd->OutWnd)->SetVScrollPos(BCWnd->OutStruct->GetVScrollMax());
+		BCWnd->OutWnd->AppendSTML(NewText);
+		if (bScrollDown) (BCWnd->OutWnd)->SetVScrollPos(BCWnd->OutWnd->GetVScrollMax());
 	};
 
-	void SetFontSize(unsigned int uiSize)
+	void SetFontSize(int uiSize)
 	{
-		struct FONTDATA
-		{
-			unsigned long ulNumFonts;
-			char**        ppFonts;
-		};
-		FONTDATA*      pFonts;       // font array structure
-		unsigned long* pulSelFont;   // selected font
-		pFonts = (FONTDATA*)&(((char*)pWndMgr)[EQ_CHAT_FONT_OFFSET]);
-		if (!pFonts->ppFonts || uiSize >= (int)pFonts->ulNumFonts)
-		{
+		if (uiSize < 0 || uiSize > pWndMgr->FontsArray.GetCount())
 			return;
-		}
-		pulSelFont = (unsigned long*)pFonts->ppFonts[uiSize];
 
-		CXStr ContStr(((CStmlWnd*)BCWnd->StmlOut)->GetSTMLText());
-        ((CXWnd*)   BCWnd->StmlOut)->SetFont(pulSelFont);
-        ((CStmlWnd*)BCWnd->StmlOut)->SetSTMLText(ContStr, 1, 0);
-        ((CStmlWnd*)BCWnd->StmlOut)->ForceParseNow();
-        ((CXWnd*)   BCWnd->StmlOut)->SetVScrollPos(BCWnd->StmlOut->GetVScrollMax());
+		CXStr ContStr(BCWnd->OutWnd->GetSTMLText());
+        BCWnd->OutWnd->SetFont(pWndMgr->FontsArray[uiSize]);
+        BCWnd->OutWnd->SetSTMLText(ContStr, 1, 0);
+        BCWnd->OutWnd->ForceParseNow();
+        BCWnd->OutWnd->SetVScrollPos(BCWnd->OutWnd->GetVScrollMax());
 
 		FontSize = uiSize;
 	};
@@ -791,7 +767,7 @@ void WriteOut(char *szText)
 {
     typedef int (__cdecl *fMQWriteBC)(char *szText);
     int bWrite        = true;
-	PMQPLUGIN pPlugin = pPlugins;
+	auto pPlugin = pPlugins;
 	while (pPlugin)
 	{
 		fMQWriteBC WriteBC = (fMQWriteBC)GetProcAddress(pPlugin->hModule, "OnWriteBC");
@@ -879,7 +855,7 @@ public:
 			for (DWORD N = 1; N<6; N++) {
 				if (pChar && pChar->pGroupInfo && pChar->pGroupInfo->pMember[N] && pChar->pGroupInfo->pMember[N]->Mercenary == 0) {
 					CHAR Name[MAX_STRING] = { 0 };
-					GetCXStr(pChar->pGroupInfo->pMember[N]->pName, Name, MAX_STRING);
+					strcpy_s(Name, pChar->pGroupInfo->pMember[N]->Name.c_str());
 					strcat_s(Name, " ");
 					strcat_s(Name, szLine);
 					ChanTransmit(szCmdBct, Name);
@@ -921,7 +897,7 @@ public:
 			for (DWORD N = 0; N<6; N++) {
 				if (pChar && pChar->pGroupInfo && pChar->pGroupInfo->pMember[N] && pChar->pGroupInfo->pMember[N]->Mercenary == 0) {
 					CHAR Name[MAX_STRING] = { 0 };
-					GetCXStr(pChar->pGroupInfo->pMember[N]->pName, Name, MAX_STRING);
+					strcpy_s(Name, pChar->pGroupInfo->pMember[N]->Name.c_str());
 					strcat_s(Name, " ");
 					strcat_s(Name, szLine);
 					ChanTransmit(szCmdBct, Name);
@@ -1672,7 +1648,7 @@ private:
 			if (GetGameState() == GAMESTATE_INGAME)
 			{
 				if (PCHARINFO pChar = GetCharInfo()) {
-					if (PCHARINFO2 pChar2 = GetCharInfo2()) {
+					if (CHARINFO2* pChar2 = GetCharInfo2()) {
 						if (PSPAWNINFO pSpawn = pChar->pSpawn) {
 							// commented by jimbob -- Original RG Bbi Message Response...
 							//							sprintf_s(szBuff, "1|%d|%d|%d|%d|%d|%d|%d|%d|%s|%s|%I64d|%d|%d|%c|%c", GetCurHPS(), GetMaxHPS(), GetCurMana(), GetMaxMana(), GetCurEndurance(), GetMaxEndurance(),
@@ -1688,8 +1664,8 @@ private:
 								pChar->zoneId, pChar2->Level, GetClassDesc(pChar2->Class), pEverQuest->GetRaceDesc(pChar2->Race), pChar->Exp,
 								pChar->AAExp, pChar2->AAPoints, pSpawn->StandState, (pSpawn->PetID == 0xFFFFFFFF) ? '0' : '1',
 								((PZONEINFO)pZoneInfo)->ShortName, pSpawn->X, pSpawn->Y, pSpawn->Z,
-								(pTarget) ? pTarget->Data.Name : "(null)", (pTarget) ? pTarget->Data.Level : 0, (pTarget) ? pTarget->Data.HPCurrent : 0, (pTarget) ? pTarget->Data.HPMax : 0,
-								(pChar->pGroupInfo) ? 1 : 0, (pChar->pGroupInfo) ? pChar->pGroupInfo->pLeader->pName->Text : "(null)"
+								(pTarget) ? pTarget->Name : "(null)", (pTarget) ? pTarget->Level : 0, (pTarget) ? pTarget->HPCurrent : 0, (pTarget) ? pTarget->HPMax : 0,
+								(pChar->pGroupInfo) ? 1 : 0, (pChar->pGroupInfo) ? pChar->pGroupInfo->pLeader->Name.c_str() : "(null)"
 							);
 							BciTransmit(szName, szBuff);
 						}
@@ -1754,7 +1730,7 @@ private:
 		}
 
 		fNetBotOnMsg pfSendf = NULL;
-		PMQPLUGIN    pFind = pPlugins;
+		auto pFind = pPlugins;
 		while (pFind && _stricmp(pFind->szFilename, pName))
 		{
 			pFind = pFind->pNext;
@@ -1783,7 +1759,7 @@ private:
 		}
 
 		fNetBotOnEvent pfSendf = NULL;
-		PMQPLUGIN      pFind = pPlugins;
+		auto pFind = pPlugins;
 		while (pFind && _stricmp(pFind->szFilename, "mq2netbots"))
 		{
 			pFind = pFind->pNext;
@@ -2369,9 +2345,9 @@ void MinWndCmd(PSPAWNINFO pLPlayer, char* szLine)
 	WINDOW->Min();
 }
 
-void KeybindEQBC(char* szKeyName, int iDown)
+void KeybindEQBC(const char* szKeyName, bool down)
 {
-	WINDOW->Keybind(iDown);
+	WINDOW->Keybind(down);
 }
 
 // --------------------------------------
