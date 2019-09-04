@@ -1389,9 +1389,9 @@ public:
 		}
 		else if (LastSecs > 0 && !Connecting)
 		{
-			if (LastSecs + SET->ReconnectSecs < GetTickCount642() / 1000)
+			if (LastSecs + SET->ReconnectSecs < GetTickCount64() / 1000)
 			{
-				LastSecs = GetTickCount642() / 1000;
+				LastSecs = GetTickCount64() / 1000;
 				Connect("", false);
 			}
 		}
@@ -1595,7 +1595,7 @@ private:
 			Disconnect(false);
 			if (SET->AutoReconnect && SET->ReconnectSecs > 0)
 			{
-				LastSecs = GetTickCount642() / 1000;
+				LastSecs = GetTickCount64() / 1000;
 			}
 		}
 		if (LastPing > 0 && LastPing + 120000 < clock())
@@ -1911,10 +1911,10 @@ public:
 		GotNames  = 7,
 	};
 	EQBCType();
-	bool GetMember(MQ2VARPTR VarPtr, char* Member, char* Index, MQ2TYPEVAR &Dest);
-	bool ToString(MQ2VARPTR VarPtr, char* Destination);
-	bool FromData(MQ2VARPTR &VarPtr, MQ2TYPEVAR &Source);
-	bool FromString(MQ2VARPTR &VarPtr, char* Source);
+	bool GetMember(MQVarPtr VarPtr, char* Member, char* Index, MQTypeVar& Dest);
+	bool ToString(MQVarPtr VarPtr, char* Destination);
+	bool FromData(MQVarPtr& VarPtr, MQTypeVar& Source);
+	bool FromString(MQVarPtr& VarPtr, char* Source);
 	bool OptStatus(char* Index);
 };
 
@@ -2007,9 +2007,9 @@ bool EQBCType::OptStatus(char* Index)
 	return (!iOption ? false : (*iOption ? true : false));
 }
 
-bool EQBCType::GetMember(MQ2VARPTR VarPtr, char* Member, char* Index, MQ2TYPEVAR &Dest)
+bool EQBCType::GetMember(MQVarPtr VarPtr, char* Member, char* Index, MQTypeVar& Dest)
 {
-	PMQ2TYPEMEMBER pMember = EQBCType::FindMember(Member);
+	MQTypeMember* pMember = EQBCType::FindMember(Member);
 	if (!pMember || !EQBC) return false;
 	switch ((VarMembers)pMember->ID)
 	{
@@ -2064,23 +2064,23 @@ bool EQBCType::GetMember(MQ2VARPTR VarPtr, char* Member, char* Index, MQ2TYPEVAR
 	return false;
 }
 
-bool EQBCType::ToString(MQ2VARPTR VarPtr, char* Destination)
+bool EQBCType::ToString(MQVarPtr VarPtr, char* Destination)
 {
 	strcpy_s(Destination, MAX_STRING, "EQBC");
 	return true;
 }
 
-bool EQBCType::FromData(MQ2VARPTR &VarPtr, MQ2TYPEVAR &Source)
+bool EQBCType::FromData(MQVarPtr& VarPtr, MQTypeVar& Source)
 {
 	return false;
 }
 
-bool EQBCType::FromString(MQ2VARPTR &VarPtr, char* Source)
+bool EQBCType::FromString(MQVarPtr& VarPtr, char* Source)
 {
 	return false;
 }
 
-int dataEQBC(char* Index, MQ2TYPEVAR &Dest)
+bool dataEQBC(const char* Index, MQTypeVar& Dest)
 {
 	Dest.DWord = 1;
 	Dest.Type = pEQBCType;
