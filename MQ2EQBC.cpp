@@ -21,7 +21,7 @@
 
 
 #pragma comment(lib,"wsock32.lib")
-#include <MQ2Plugin.h>
+#include <mq/Plugin.h>
 #include <vector>
 const char*        MODULE_NAME        = "MQ2EQBC";
 const double       MODULE_VERSION     = 19.0605;
