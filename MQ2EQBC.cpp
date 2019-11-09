@@ -1659,7 +1659,7 @@ private:
 			if (GetGameState() == GAMESTATE_INGAME)
 			{
 				if (PCHARINFO pChar = GetCharInfo()) {
-					if (CHARINFO2* pChar2 = GetCharInfo2()) {
+					if (auto pChar2 = GetPcProfile()) {
 						if (PSPAWNINFO pSpawn = pChar->pSpawn) {
 							// commented by jimbob -- Original RG Bbi Message Response...
 							//							sprintf_s(szBuff, "1|%d|%d|%d|%d|%d|%d|%d|%d|%s|%s|%I64d|%d|%d|%c|%c", GetCurHPS(), GetMaxHPS(), GetCurMana(), GetMaxMana(), GetCurEndurance(), GetMaxEndurance(),
