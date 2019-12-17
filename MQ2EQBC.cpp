@@ -19,18 +19,17 @@
 //			- Also added Watch Raid Say option, 'cause Why not?!
 /***************************************************************/
 
+#include <mq/Plugin.h>
+
+#include <vector>
 
 #pragma comment(lib,"wsock32.lib")
-#include <mq/Plugin.h>
-#include <vector>
-const char*        MODULE_NAME        = "MQ2EQBC";
-const double       MODULE_VERSION     = 19.0605;
-PreSetup(MODULE_NAME);
-PLUGIN_VERSION(MODULE_VERSION);
+
+PreSetup("MQ2EQBC");
+PLUGIN_VERSION(19.0605);
 
 // --------------------------------------
 // constants
-const char*        PROG_VERSION       = "MQ2EQBC 16.600";
 const char*        CONNECT_START      = "LOGIN";
 const char*        CONNECT_START2     = "=";
 const char*        CONNECT_END        = ";";
@@ -1424,7 +1423,7 @@ public:
 	void Version()
 	{
 		char szTemp[MAX_STRING] = { 0 };
-		sprintf_s(szTemp, "\ar#\ax %s", PROG_VERSION);
+		sprintf_s(szTemp, "\ar#\ax MQ2EQBC %.4f", MQ2Version);
 		WriteOut(szTemp);
 	};
 
@@ -2203,7 +2202,7 @@ void BccmdCmd(PSPAWNINFO pLPlayer, char* szline)
 	}
 	else if (!_strnicmp(szArg, szCmdVersion, sizeof(szCmdVersion)))
 	{
-		sprintf_s(szMsg, "\ar#\ax %s", PROG_VERSION);
+		sprintf_s(szMsg, "\ar#\ax MQ2EQBC %.4f", MQ2Version);
 		WriteOut(szMsg);
 	}
 	else if (!_strnicmp(szArg, szCmdColorDump, sizeof(szCmdColorDump)))
@@ -2346,7 +2345,7 @@ void WndFontCmd(PSPAWNINFO pLPlayer, char* szLine)
 		}
 	}
 	char szError[200] = { 0 };
-	sprintf_s(szError, "\ar%s\ax Usage: /bcfont 0-10", MODULE_NAME);
+	sprintf_s(szError, "\arMQ2EQBC\ax Usage: /bcfont 0-10");
 	WriteOut(szError);
 }
 
