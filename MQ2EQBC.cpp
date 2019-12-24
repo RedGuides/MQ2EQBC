@@ -17,6 +17,7 @@
 // v19.0605 - jimbob - Added "Silent" commands for /bc commands - /bcsa, /bcsaa, /bcsg, /bcsga, /bcst
 //          - Also changed MODULE_VERSION to be YY.MMDD of latest change.
 //			- Also added Watch Raid Say option, 'cause Why not?!
+// v19.0606 - eqmule fixed the window position.
 /***************************************************************/
 
 
@@ -25,13 +26,13 @@
 using namespace std;
 #include <vector>
 const char*        MODULE_NAME        = "MQ2EQBC";
-const double       MODULE_VERSION     = 19.0605;
+const double       MODULE_VERSION     = 19.0606;
 PreSetup(MODULE_NAME);
 PLUGIN_VERSION(MODULE_VERSION);
 
 // --------------------------------------
 // constants
-const char*        PROG_VERSION       = "MQ2EQBC 16.600";
+const char*        PROG_VERSION       = "MQ2EQBC 16.601";
 const char*        CONNECT_START      = "LOGIN";
 const char*        CONNECT_START2     = "=";
 const char*        CONNECT_END        = ";";
@@ -662,6 +663,16 @@ public:
 		}
 	};
 
+	void BCReset()
+	{
+		if (BCWnd)
+		{
+			BCWnd->SetLocked(false);
+			CXRect rc = { 300, 10, 600, 210 };
+			((CXWnd*)BCWnd)->Move(rc, false);
+		}
+	};
+
 	void ResetKeys()
 	{
 		KeyActive = false;
@@ -682,7 +693,10 @@ private:
 
         SET->CustTitle         = GetPrivateProfileInt(SET->SaveByChar ? szCharName : "Window", "UseMyTitle",   0,    INIFileName);
 		//left top right bottom
-		BCWnd->SetLocation({ (LONG)GetPrivateProfileInt(SET->SaveByChar ? szCharName : "Window", "ChatLeft",     10,   INIFileName),
+		LONG left = GetPrivateProfileInt(SET->SaveByChar ? szCharName : "Window", "ChatLeft", 10, INIFileName);
+		if (left == 2000)
+			left = 10;
+		BCWnd->SetLocation({ left,
 			(LONG)GetPrivateProfileInt(SET->SaveByChar ? szCharName : "Window", "ChatTop",      10,   INIFileName),
 			(LONG)GetPrivateProfileInt(SET->SaveByChar ? szCharName : "Window", "ChatRight",    410,  INIFileName),
 			(LONG)GetPrivateProfileInt(SET->SaveByChar ? szCharName : "Window", "ChatBottom",   210,  INIFileName) });
@@ -2169,7 +2183,12 @@ void BccmdCmd(PSPAWNINFO pLPlayer, char* szline)
 	char szMsg[MAX_STRING] = { 0 };
 
 	GetArg(szArg, szCmd, 1);
-
+	if (!_strnicmp(szArg, "reset", 6)) {
+		if (WINDOW) {
+			WINDOW->BCReset();
+		}
+		return;
+	}
 	if (!_strnicmp(szArg, "set", 4))
 	{
 		char szTempSet[MAX_STRING] = { 0 };
