@@ -26,7 +26,7 @@
 #pragma comment(lib,"wsock32.lib")
 
 PreSetup("MQ2EQBC");
-PLUGIN_VERSION(19.0605);
+PLUGIN_VERSION(19.0606);
 
 // --------------------------------------
 // constants
@@ -120,10 +120,10 @@ CHAR szConnectedChars[4096] = { 0 };
 bool bGotNames = false;
 // --------------------------------------
 // class instances
-class EQBCType*        pEQBCType = NULL;
-class CSettingsMgr*          SET = NULL;
-class CEQBCWndHandler*    WINDOW = NULL;
-class CConnectionMgr*       EQBC = NULL;
+class EQBCType*        pEQBCType = nullptr;
+class CSettingsMgr*          SET = nullptr;
+class CEQBCWndHandler*    WINDOW = nullptr;
+class CConnectionMgr*       EQBC = nullptr;
 
 // --------------------------------------
 // function prototypes
@@ -661,6 +661,16 @@ public:
 		}
 	};
 
+	void BCReset()
+	{
+		if (BCWnd)
+		{
+			BCWnd->SetLocked(false);
+			CXRect rc = { 300, 10, 600, 210 };
+			BCWnd->Move(rc, false);
+		}
+	}
+
 	void ResetKeys()
 	{
 		KeyActive = false;
@@ -862,8 +872,8 @@ public:
 		char *szCmdBct = (silent ? CMD_STELL : CMD_TELL);
 		if (szLine && strlen(szLine))
 		{
-			for (DWORD N = 1; N<6; N++) {
-				if (pChar && pChar->pGroupInfo && pChar->pGroupInfo->pMember[N] && pChar->pGroupInfo->pMember[N]->Mercenary == 0) {
+			for (DWORD N = 1; N < MAX_GROUP_SIZE; N++) {
+				if (pChar && pChar->pGroupInfo && pChar->pGroupInfo->pMember[N] && pChar->pGroupInfo->pMember[N]->Type == EQP_PC) {
 					CHAR Name[MAX_STRING] = { 0 };
 					strcpy_s(Name, pChar->pGroupInfo->pMember[N]->Name.c_str());
 					strcat_s(Name, " ");
@@ -904,8 +914,8 @@ public:
 		char *szCmdBct = (silent ? CMD_STELL : CMD_TELL);
 		if (szLine && strlen(szLine))
 		{
-			for (DWORD N = 0; N<6; N++) {
-				if (pChar && pChar->pGroupInfo && pChar->pGroupInfo->pMember[N] && pChar->pGroupInfo->pMember[N]->Mercenary == 0) {
+			for (DWORD N = 0; N < MAX_GROUP_SIZE; N++) {
+				if (pChar && pChar->pGroupInfo && pChar->pGroupInfo->pMember[N] && pChar->pGroupInfo->pMember[N]->Type == EQP_PC) {
 					CHAR Name[MAX_STRING] = { 0 };
 					strcpy_s(Name, pChar->pGroupInfo->pMember[N]->Name.c_str());
 					strcat_s(Name, " ");
@@ -2156,6 +2166,14 @@ void BccmdCmd(PSPAWNINFO pLPlayer, char* szline)
 
 	GetArg(szArg, szCmd, 1);
 
+	if (!_strnicmp(szArg, "reset", 6))
+	{
+		if (WINDOW)
+		{
+			WINDOW->BCReset();
+		}
+		return;
+	}
 	if (!_strnicmp(szArg, "set", 4))
 	{
 		char szTempSet[MAX_STRING] = { 0 };
