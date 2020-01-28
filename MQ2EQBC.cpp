@@ -2024,7 +2024,7 @@ bool EQBCType::GetMember(MQVarPtr VarPtr, char* Member, char* Index, MQTypeVar& 
 	{
 	case Connected:
 		Dest.DWord = EQBC->Connected;
-		Dest.Type = pBoolType;
+		Dest.Type = mq::datatypes::pBoolType;
 		return true;
 	case Server:
 		sprintf_s(DataTypeTemp, "OFFLINE");
@@ -2033,7 +2033,7 @@ bool EQBCType::GetMember(MQVarPtr VarPtr, char* Member, char* Index, MQTypeVar& 
 			strcpy_s(DataTypeTemp, szServer);
 		}
 		Dest.Ptr = &DataTypeTemp[0];
-		Dest.Type = pStringType;
+		Dest.Type = mq::datatypes::pStringType;
 		return true;
 	case Port:
 		sprintf_s(DataTypeTemp, "OFFLINE");
@@ -2042,7 +2042,7 @@ bool EQBCType::GetMember(MQVarPtr VarPtr, char* Member, char* Index, MQTypeVar& 
 			strcpy_s(DataTypeTemp, szPort);
 		}
 		Dest.Ptr = &DataTypeTemp[0];
-		Dest.Type = pStringType;
+		Dest.Type = mq::datatypes::pStringType;
 		return true;
 	case ToonName:
 		sprintf_s(DataTypeTemp, "OFFLINE");
@@ -2051,23 +2051,23 @@ bool EQBCType::GetMember(MQVarPtr VarPtr, char* Member, char* Index, MQTypeVar& 
 			strcpy_s(DataTypeTemp, szToonName);
 		}
 		Dest.Ptr = &DataTypeTemp[0];
-		Dest.Type = pStringType;
+		Dest.Type = mq::datatypes::pStringType;
 		return true;
 	case Setting:
 		Dest.DWord = false;
-		Dest.Type = pBoolType;
+		Dest.Type = mq::datatypes::pBoolType;
 		if (!Index[0]) return true;
 		Dest.DWord = OptStatus(Index);
 		return true;
 	case Names:
 	{
 		Dest.Ptr = &szConnectedChars[0];
-		Dest.Type = pStringType;
+		Dest.Type = mq::datatypes::pStringType;
 		return true;
 	}
 	case GotNames:
 		Dest.DWord = bGotNames;
-		Dest.Type = pBoolType;
+		Dest.Type = mq::datatypes::pBoolType;
 		return true;
 	}
 	return false;
