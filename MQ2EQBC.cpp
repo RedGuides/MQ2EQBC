@@ -1920,10 +1920,10 @@ public:
 		GotNames  = 7,
 	};
 	EQBCType();
-	bool GetMember(MQVarPtr VarPtr, char* Member, char* Index, MQTypeVar& Dest);
+	virtual bool GetMember(MQVarPtr VarPtr, const char* Member, char* Index, MQTypeVar& Dest) override;
 	bool ToString(MQVarPtr VarPtr, char* Destination);
 	bool FromData(MQVarPtr& VarPtr, MQTypeVar& Source);
-	bool FromString(MQVarPtr& VarPtr, char* Source);
+	virtual bool FromString(MQVarPtr& VarPtr, const char* Source) override;
 	bool OptStatus(char* Index);
 };
 
@@ -2016,7 +2016,7 @@ bool EQBCType::OptStatus(char* Index)
 	return (!iOption ? false : (*iOption ? true : false));
 }
 
-bool EQBCType::GetMember(MQVarPtr VarPtr, char* Member, char* Index, MQTypeVar& Dest)
+bool EQBCType::GetMember(MQVarPtr VarPtr, const char* Member, char* Index, MQTypeVar& Dest)
 {
 	MQTypeMember* pMember = EQBCType::FindMember(Member);
 	if (!pMember || !EQBC) return false;
@@ -2084,7 +2084,7 @@ bool EQBCType::FromData(MQVarPtr& VarPtr, MQTypeVar& Source)
 	return false;
 }
 
-bool EQBCType::FromString(MQVarPtr& VarPtr, char* Source)
+bool EQBCType::FromString(MQVarPtr& VarPtr, const char* Source)
 {
 	return false;
 }
