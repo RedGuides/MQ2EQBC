@@ -75,7 +75,6 @@ BEGIN
 #endif
             VALUE "FileVersion", "19.0606"
             VALUE "InternalName", "MQ2EQBC.dll"
-            VALUE "LegalCopyright", "Licensed under the GNU GPL v2"
             VALUE "OriginalFilename", "MQ2EQBC.dll"
             VALUE "ProductName", "MQ2EQBC"
             VALUE "ProductVersion", "19.0606"

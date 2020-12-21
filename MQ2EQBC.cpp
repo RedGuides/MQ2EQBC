@@ -669,7 +669,7 @@ public:
 			CXRect rc = { 300, 10, 600, 210 };
 			BCWnd->Move(rc, false);
 		}
-	}
+	};
 
 	void ResetKeys()
 	{
@@ -2363,7 +2363,7 @@ void WndFontCmd(PSPAWNINFO pLPlayer, char* szLine)
 		}
 	}
 	char szError[200] = { 0 };
-	sprintf_s(szError, "\arMQ2EQBC\ax Usage: /bcfont 0-10");
+	strcpy_s(szError, "\arMQ2EQBC\ax Usage: /bcfont 0-10");
 	WriteOut(szError);
 }
 
