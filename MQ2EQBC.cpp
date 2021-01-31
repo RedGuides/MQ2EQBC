@@ -873,9 +873,10 @@ public:
 		if (szLine && strlen(szLine))
 		{
 			for (DWORD N = 1; N < MAX_GROUP_SIZE; N++) {
-				if (pChar && pChar->pGroupInfo && pChar->pGroupInfo->pMember[N] && pChar->pGroupInfo->pMember[N]->Type == EQP_PC) {
+				const auto groupMember = GetGroupMember(N);
+				if (pChar && pChar->pGroupInfo && groupMember && groupMember->Type == EQP_PC) {
 					CHAR Name[MAX_STRING] = { 0 };
-					strcpy_s(Name, pChar->pGroupInfo->pMember[N]->Name.c_str());
+					strcpy_s(Name, groupMember->Name);
 					strcat_s(Name, " ");
 					strcat_s(Name, szLine);
 					ChanTransmit(szCmdBct, Name);
@@ -906,6 +907,7 @@ public:
 		}
 	};
 
+	// TODO:  Except for N = 0 vs N = 1, this is the exact code as in BCG.
 	void BCGA(char* szLine, bool silent=false)
 	{
 		if (!ConnectReady()) return;
@@ -915,9 +917,10 @@ public:
 		if (szLine && strlen(szLine))
 		{
 			for (DWORD N = 0; N < MAX_GROUP_SIZE; N++) {
-				if (pChar && pChar->pGroupInfo && pChar->pGroupInfo->pMember[N] && pChar->pGroupInfo->pMember[N]->Type == EQP_PC) {
+				const auto groupMember = GetGroupMember(N);
+				if (pChar && pChar->pGroupInfo && groupMember && groupMember->Type == EQP_PC) {
 					CHAR Name[MAX_STRING] = { 0 };
-					strcpy_s(Name, pChar->pGroupInfo->pMember[N]->Name.c_str());
+					strcpy_s(Name, groupMember->Name);
 					strcat_s(Name, " ");
 					strcat_s(Name, szLine);
 					ChanTransmit(szCmdBct, Name);
@@ -1179,7 +1182,7 @@ public:
 				WriteOut(szOutput);
 				if (SET->NameAnnounce)
 				{
-					EQBC->Names(); //Now requests for names occurs when -anyone- connects. 
+					EQBC->Names(); //Now requests for names occurs when -anyone- connects.
 				}
 			}
 			if (!strncmp(pRawmsg, "NBQUIT=", 7))
@@ -1189,7 +1192,7 @@ public:
 				sprintf_s(szOutput, "\ar#\ax - %s has left the server.", &pRawmsg[7]);
 				WriteOut(szOutput);
 				if (SET->NameAnnounce)
-				{ 
+				{
 					EQBC->Names(); //Now requests for names occurs when -anyone- disconnects.
 				}
 			}
