@@ -864,88 +864,50 @@ public:
 		}
 	};
 
-	void BCG(char* szLine, bool silent=false)
+	void BCG(char* szLine, bool silent = false, int start = 1)
 	{
-		if (!ConnectReady()) return;
-		PCHARINFO pChar = GetCharInfo();
-		//char szCmdBct[] = (silent == false ? CMD_STELL : CMD_TELL); // ? : in assignment won't work with char name[] type string pointer.
+		if (!ConnectReady())
+			return;
+
 		char *szCmdBct = (silent ? CMD_STELL : CMD_TELL);
 		if (szLine && strlen(szLine))
 		{
-			for (DWORD N = 1; N < MAX_GROUP_SIZE; N++) {
-				const auto groupMember = GetGroupMember(N);
-				if (pChar && pChar->pGroupInfo && groupMember && groupMember->Type == EQP_PC) {
-					CHAR Name[MAX_STRING] = { 0 };
-					strcpy_s(Name, groupMember->Name);
-					strcat_s(Name, " ");
-					strcat_s(Name, szLine);
-					ChanTransmit(szCmdBct, Name);
-					if (SET->IRCMode && !(SET->SilentOutMsg  || silent))
+			for (int N = start; N < MAX_GROUP_SIZE; N++)
+			{
+				// Keeping ->pMember here because it is expected to work out of zone
+				if (pCharData && pCharData->Group)
+				{
+					const auto groupMember = pCharData->Group->GetGroupMember(N);
+					if (groupMember && groupMember->Type == EQP_PC)
 					{
-						char szTemp[MAX_STRING] = {0};
-						int iSrc                = 0;
-						int iDest               = 0;
-						int iLen                = 0;
+						CHAR Name[MAX_STRING] = { 0 };
+						strcpy_s(Name, groupMember->Name.c_str());
+						strcat_s(Name, " ");
+						strcat_s(Name, szLine);
+						ChanTransmit(szCmdBct, Name);
+						if (SET->IRCMode && !(SET->SilentOutMsg || silent))
+						{
+							char szTemp[MAX_STRING] = { 0 };
+							int iSrc = 0;
+							int iDest = 0;
+							int iLen = 0;
 
-						iLen   = strlen(Name);
-						iDest += WriteStringGetCount(&szTemp[iDest], COLOR_STELL1);
-						while (Name[iSrc] != ' ' && Name[iSrc] != '\n' && iSrc <= iLen)
-						{
-							szTemp[iDest++] = Name[iSrc++];
+							iLen = strlen(Name);
+							iDest += WriteStringGetCount(&szTemp[iDest], COLOR_STELL1);
+							while (Name[iSrc] != ' ' && Name[iSrc] != '\n' && iSrc <= iLen)
+							{
+								szTemp[iDest++] = Name[iSrc++];
+							}
+							iDest += WriteStringGetCount(&szTemp[iDest], COLOR_STELL2);
+							iSrc++;
+							while (iSrc <= iLen)
+							{
+								szTemp[iDest++] = Name[iSrc++];
+							}
+							szTemp[iDest] = '\n';
+							WriteOut(szTemp);
 						}
-						iDest += WriteStringGetCount(&szTemp[iDest], COLOR_STELL2);
-						iSrc++;
-						while (iSrc <= iLen)
-						{
-							szTemp[iDest++] = Name[iSrc++];
 						}
-						szTemp[iDest] = '\n';
-						WriteOut(szTemp);
-					}
-				}
-			}
-		}
-	};
-
-	// TODO:  Except for N = 0 vs N = 1, this is the exact code as in BCG.
-	void BCGA(char* szLine, bool silent=false)
-	{
-		if (!ConnectReady()) return;
-		PCHARINFO pChar = GetCharInfo();
-		//char szCmdBct[] = CMD_TELL;
-		char *szCmdBct = (silent ? CMD_STELL : CMD_TELL);
-		if (szLine && strlen(szLine))
-		{
-			for (DWORD N = 0; N < MAX_GROUP_SIZE; N++) {
-				const auto groupMember = GetGroupMember(N);
-				if (pChar && pChar->pGroupInfo && groupMember && groupMember->Type == EQP_PC) {
-					CHAR Name[MAX_STRING] = { 0 };
-					strcpy_s(Name, groupMember->Name);
-					strcat_s(Name, " ");
-					strcat_s(Name, szLine);
-					ChanTransmit(szCmdBct, Name);
-					if (SET->IRCMode && !(SET->SilentOutMsg || silent))
-					{
-						char szTemp[MAX_STRING] = { 0 };
-						int iSrc = 0;
-						int iDest = 0;
-						int iLen = 0;
-
-						iLen = strlen(Name);
-						iDest += WriteStringGetCount(&szTemp[iDest], COLOR_STELL1);
-						while (Name[iSrc] != ' ' && Name[iSrc] != '\n' && iSrc <= iLen)
-						{
-							szTemp[iDest++] = Name[iSrc++];
-						}
-						iDest += WriteStringGetCount(&szTemp[iDest], COLOR_STELL2);
-						iSrc++;
-						while (iSrc <= iLen)
-						{
-							szTemp[iDest++] = Name[iSrc++];
-						}
-						szTemp[iDest] = '\n';
-						WriteOut(szTemp);
-					}
 				}
 			}
 		}
@@ -2293,7 +2255,7 @@ void BcgCmd(PSPAWNINFO pLPlayer, char* szLine)
 // bcga
 void BcgaCmd(PSPAWNINFO pLPlayer, char* szLine)
 {
-	EQBC->BCGA(szLine);
+	EQBC->BCG(szLine, false, 0);
 }
 
 // bct
@@ -2323,7 +2285,7 @@ void BcsgCmd(PSPAWNINFO pLPlayer, char* szLine)
 // bcsga
 void BcsgaCmd(PSPAWNINFO pLPlayer, char* szLine)
 {
-	EQBC->BCGA(szLine, true);
+	EQBC->BCG(szLine, true, 0);
 }
 
 // bcst
