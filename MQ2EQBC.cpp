@@ -864,50 +864,47 @@ public:
 		}
 	};
 
-	void BCG(char* szLine, bool silent = false, int start = 1)
+	void BCG(const char* szLine, bool silent = false, int start = 1)
 	{
-		if (!ConnectReady())
+		if (!ConnectReady() || !pCharData || !pCharData->Group)
 			return;
 
-		char *szCmdBct = (silent ? CMD_STELL : CMD_TELL);
+		char* szCmdBct = (silent ? CMD_STELL : CMD_TELL);
 		if (szLine && strlen(szLine))
 		{
 			for (int N = start; N < MAX_GROUP_SIZE; N++)
 			{
-				// Keeping ->pMember here because it is expected to work out of zone
-				if (pCharData && pCharData->Group)
+				// This is expected to work for members who are out of zone
+				const auto groupMember = pCharData->Group->GetGroupMember(N);
+				if (groupMember && groupMember->Type == EQP_PC)
 				{
-					const auto groupMember = pCharData->Group->GetGroupMember(N);
-					if (groupMember && groupMember->Type == EQP_PC)
+					char Name[MAX_STRING] = { 0 };
+					strcpy_s(Name, groupMember->Name.c_str());
+					strcat_s(Name, " ");
+					strcat_s(Name, szLine);
+					ChanTransmit(szCmdBct, Name);
+					if (SET->IRCMode && !(SET->SilentOutMsg || silent))
 					{
-						CHAR Name[MAX_STRING] = { 0 };
-						strcpy_s(Name, groupMember->Name.c_str());
-						strcat_s(Name, " ");
-						strcat_s(Name, szLine);
-						ChanTransmit(szCmdBct, Name);
-						if (SET->IRCMode && !(SET->SilentOutMsg || silent))
-						{
-							char szTemp[MAX_STRING] = { 0 };
-							int iSrc = 0;
-							int iDest = 0;
-							int iLen = 0;
+						char szTemp[MAX_STRING] = { 0 };
+						int iSrc = 0;
+						int iDest = 0;
+						int iLen = 0;
 
-							iLen = strlen(Name);
-							iDest += WriteStringGetCount(&szTemp[iDest], COLOR_STELL1);
-							while (Name[iSrc] != ' ' && Name[iSrc] != '\n' && iSrc <= iLen)
-							{
-								szTemp[iDest++] = Name[iSrc++];
-							}
-							iDest += WriteStringGetCount(&szTemp[iDest], COLOR_STELL2);
-							iSrc++;
-							while (iSrc <= iLen)
-							{
-								szTemp[iDest++] = Name[iSrc++];
-							}
-							szTemp[iDest] = '\n';
-							WriteOut(szTemp);
+						iLen = strlen(Name);
+						iDest += WriteStringGetCount(&szTemp[iDest], COLOR_STELL1);
+						while (Name[iSrc] != ' ' && Name[iSrc] != '\n' && iSrc <= iLen)
+						{
+							szTemp[iDest++] = Name[iSrc++];
 						}
+						iDest += WriteStringGetCount(&szTemp[iDest], COLOR_STELL2);
+						iSrc++;
+						while (iSrc <= iLen)
+						{
+							szTemp[iDest++] = Name[iSrc++];
 						}
+						szTemp[iDest] = '\n';
+						WriteOut(szTemp);
+					}
 				}
 			}
 		}
@@ -1874,33 +1871,34 @@ void CEQBCWnd::WriteToBC(char* szBuffer)
 class EQBCType : public MQ2Type
 {
 public:
-	enum VarMembers
+	enum class VarMembers
 	{
-        Connected = 1,
-        Server    = 2,
-        Port      = 3,
-        ToonName  = 4,
-        Setting   = 5,
-		Names     = 6,
-		GotNames  = 7,
+		Connected = 1,
+		Server,
+		Port,
+		ToonName,
+		Setting,
+		Names,
+		GotNames,
 	};
+
 	EQBCType();
+
 	virtual bool GetMember(MQVarPtr VarPtr, const char* Member, char* Index, MQTypeVar& Dest) override;
-	bool ToString(MQVarPtr VarPtr, char* Destination);
-	bool FromData(MQVarPtr& VarPtr, MQTypeVar& Source);
-	virtual bool FromString(MQVarPtr& VarPtr, const char* Source) override;
+	virtual bool ToString(MQVarPtr VarPtr, char* Destination) override;
+
 	bool OptStatus(char* Index);
 };
 
-EQBCType::EQBCType() :MQ2Type("EQBC")
+EQBCType::EQBCType() : MQ2Type("EQBC")
 {
-	TypeMember(Connected);
-	TypeMember(Server);
-	TypeMember(Port);
-	TypeMember(ToonName);
-	TypeMember(Setting);
-	TypeMember(Names);
-	TypeMember(GotNames);
+	ScopedTypeMember(VarMembers, Connected);
+	ScopedTypeMember(VarMembers, Server);
+	ScopedTypeMember(VarMembers, Port);
+	ScopedTypeMember(VarMembers, ToonName);
+	ScopedTypeMember(VarMembers, Setting);
+	ScopedTypeMember(VarMembers, Names);
+	ScopedTypeMember(VarMembers, GotNames);
 }
 
 bool EQBCType::OptStatus(char* Index)
@@ -1985,13 +1983,14 @@ bool EQBCType::GetMember(MQVarPtr VarPtr, const char* Member, char* Index, MQTyp
 {
 	MQTypeMember* pMember = EQBCType::FindMember(Member);
 	if (!pMember || !EQBC) return false;
-	switch ((VarMembers)pMember->ID)
+
+	switch (static_cast<VarMembers>(pMember->ID))
 	{
-	case Connected:
+	case VarMembers::Connected:
 		Dest.DWord = EQBC->Connected;
 		Dest.Type = mq::datatypes::pBoolType;
 		return true;
-	case Server:
+	case VarMembers::Server:
 		sprintf_s(DataTypeTemp, "OFFLINE");
 		if (EQBC->Connected)
 		{
@@ -2000,7 +1999,7 @@ bool EQBCType::GetMember(MQVarPtr VarPtr, const char* Member, char* Index, MQTyp
 		Dest.Ptr = &DataTypeTemp[0];
 		Dest.Type = mq::datatypes::pStringType;
 		return true;
-	case Port:
+	case VarMembers::Port:
 		sprintf_s(DataTypeTemp, "OFFLINE");
 		if (EQBC->Connected)
 		{
@@ -2009,7 +2008,7 @@ bool EQBCType::GetMember(MQVarPtr VarPtr, const char* Member, char* Index, MQTyp
 		Dest.Ptr = &DataTypeTemp[0];
 		Dest.Type = mq::datatypes::pStringType;
 		return true;
-	case ToonName:
+	case VarMembers::ToonName:
 		sprintf_s(DataTypeTemp, "OFFLINE");
 		if (EQBC->Connected)
 		{
@@ -2018,19 +2017,19 @@ bool EQBCType::GetMember(MQVarPtr VarPtr, const char* Member, char* Index, MQTyp
 		Dest.Ptr = &DataTypeTemp[0];
 		Dest.Type = mq::datatypes::pStringType;
 		return true;
-	case Setting:
+	case VarMembers::Setting:
 		Dest.DWord = false;
 		Dest.Type = mq::datatypes::pBoolType;
 		if (!Index[0]) return true;
 		Dest.DWord = OptStatus(Index);
 		return true;
-	case Names:
+	case VarMembers::Names:
 	{
 		Dest.Ptr = &szConnectedChars[0];
 		Dest.Type = mq::datatypes::pStringType;
 		return true;
 	}
-	case GotNames:
+	case VarMembers::GotNames:
 		Dest.DWord = bGotNames;
 		Dest.Type = mq::datatypes::pBoolType;
 		return true;
@@ -2042,16 +2041,6 @@ bool EQBCType::ToString(MQVarPtr VarPtr, char* Destination)
 {
 	strcpy_s(Destination, MAX_STRING, "EQBC");
 	return true;
-}
-
-bool EQBCType::FromData(MQVarPtr& VarPtr, MQTypeVar& Source)
-{
-	return false;
-}
-
-bool EQBCType::FromString(MQVarPtr& VarPtr, const char* Source)
-{
-	return false;
 }
 
 bool dataEQBC(const char* Index, MQTypeVar& Dest)
