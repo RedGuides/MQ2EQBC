@@ -435,7 +435,7 @@ private:
 class CEQBCWnd : public CCustomWnd
 {
 public:
-	CTextEntryWnd*     InputBox;
+	CEditWnd*     InputBox;
 	CStmlWnd*          StmlOut;
 	CXWnd*             OutWnd;
 	struct _CSIDLWND*  OutStruct;
@@ -452,7 +452,7 @@ public:
         OutWnd = (CXWnd*)StmlOut;
         OutWnd->SetClickable(1);
         OutStruct = (_CSIDLWND *)GetChildItem("CW_ChatOutput");
-        InputBox = (CTextEntryWnd*)GetChildItem("CW_ChatInput");
+        InputBox = (CEditWnd*)GetChildItem("CW_ChatInput");
         InputBox->AddStyle(0x800C0);
         InputBox->SetCRNormal(0xFFFFFFFF);
         SetEscapable(0);
