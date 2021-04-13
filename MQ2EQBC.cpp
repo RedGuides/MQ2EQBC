@@ -499,7 +499,7 @@ public:
 						if (iCurCommand < (int)sCmdHistory.size() && iCurCommand >= 0)
 						{
 							std::string s = (std::string)sCmdHistory.at(iCurCommand);
-							((CXWnd*)InputBox)->SetWindowTextA(CXStr(s.c_str()));
+							((CXWnd*)InputBox)->SetWindowText(CXStr(s.c_str()));
 						}
 						else
 						{
@@ -516,7 +516,7 @@ public:
 						if (iCurCommand >= 0 && sCmdHistory.size() > 0)
 						{
 							std::string s = (std::string)sCmdHistory.at(iCurCommand);
-							((CXWnd*)InputBox)->SetWindowTextA(CXStr(s.c_str()));
+							((CXWnd*)InputBox)->SetWindowText(CXStr(s.c_str()));
 						}
 						else if (iCurCommand < 0)
 						{
@@ -638,7 +638,7 @@ public:
 	{
 		if (!BCWnd || SET->CustTitle) return;
 		if (!ci_equals(BCWnd->GetWindowText(), szServer))
-			BCWnd->SetWindowTextA(szServer);
+			BCWnd->SetWindowText(szServer);
 	};
 
 	void Keybind(bool down)
@@ -650,7 +650,7 @@ public:
 			{
 				CXRect rect = BCWnd->InputBox->GetScreenRect();
 				CXPoint pt  = rect.CenterPoint();
-				BCWnd->InputBox->SetWindowTextA("");
+				BCWnd->InputBox->SetWindowText("");
 				BCWnd->InputBox->HandleLButtonDown(pt, 0);
 				KeyActive = true;
 				return;
@@ -715,7 +715,7 @@ private:
 		{
 			GetPrivateProfileString(SET->SaveByChar ? szCharName : "Window", "WindowTitle", szWindowText, szWindowText, MAX_STRING, INIFileName);
 		}
-		BCWnd->SetWindowTextA(szWindowText);
+		BCWnd->SetWindowText(szWindowText);
 		//SetCXStr(&BCWnd->WindowText, szWindowText);
 		BCWnd->Show(1, 1);
 		BCWnd->OutWnd->RemoveStyle(CWS_CLOSE);
