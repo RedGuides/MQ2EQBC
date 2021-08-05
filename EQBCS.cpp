@@ -7,15 +7,15 @@
 
 #ifdef _WIN32
 #define UNIXWIN
-#define socklen_t int
 #define strcasecmp _stricmp
 #pragma comment(lib,"wsock32.lib")
+#pragma comment(lib,"ws2_32.lib")
 #define WIN32_LEAN_AND_MEAN
-#include <windows.h>
+#include <Windows.h>
 #include <tchar.h>
-#include <winsock2.h>
-#define WS_MAJOR  1
-#define WS_MINOR  1
+#include <WS2tcpip.h>
+constexpr int WS_MAJOR = 2;
+constexpr int WS_MINOR = 2;
 #endif
 
 #include <stdio.h>
@@ -63,8 +63,8 @@ bool bInitialized = false;
 class CTrace
 {
 public:
-	static int iTracef(char *fmt,...);
-	static int dbg(char *fmt,...);
+	static int iTracef(const char* fmt, ...);
+	static int dbg(const char* fmt, ...);
 };
 
 class CCharBufNode
@@ -101,7 +101,7 @@ public:
 	~CCharBuf();
 	int hasWaiting();
 	void writeChar(char ch);
-	void writesz(char *szStr);
+	void writesz(const char* szStr);
 	char readChar();
 };
 
@@ -140,7 +140,7 @@ public: // Vars
 	time_t lastPingSecs;
 	int lastPingReponseTimeSecs;
 public:
-	CClientNode(char *szCharName, int iSocketHandle, CClientNode *newNext);
+	CClientNode(const char* szCharName, int iSocketHandle, CClientNode* newNext);
 	~CClientNode();
 };
 
@@ -190,9 +190,9 @@ private:
 	int getMaxFD();
 	void SendToLocal(char ch);
 	void WriteLocalChar(char ch);
-	void WriteLocalString(char *szStr);
+	void WriteLocalString(const char* szStr);
 	void AppendCharToAll(char ch);
-	void SendToAll(char *szStr);
+	void SendToAll(const char* szStr);
 	void SendMyNameToAll(CClientNode *cn, int iMsgType);
 	void SendMyNameToOne(CClientNode *cn, CClientNode *cn_to, int iMsgType);
 	void WriteOwnNames();
@@ -236,9 +236,9 @@ public:
 // Globals
 // ---------------------------------------------------------------------
 
-CEqbcs *runInstance =           NULL;
-char   *Title=                  PROG_TITLE;
-char   *Version=                PROG_VERSION;
+CEqbcs* runInstance = nullptr;
+const char* Title = PROG_TITLE;
+const char* Version = PROG_VERSION;
 
 int    EQBCS_TraceSockets=0;
 int    EQBCS_iDebugMode = 1;
@@ -282,7 +282,7 @@ const int CEqbcs::DEFAULT_PORT = 2112;
 // Debug
 // ---------------------------------------------------------------------
 
-int CTrace::iTracef(char *fmt,...)
+int CTrace::iTracef(const char* fmt, ...)
 {
 	// Trace to stdout if TRACE defined
 
@@ -311,7 +311,7 @@ int CTrace::iTracef(char *fmt,...)
 
 // for pure debugging, no checks
 
-int CTrace::dbg(char *fmt,...)
+int CTrace::dbg(const char *fmt, ...)
 {
 	// Trace to stdout if TRACE defined
 	char     temp_str[MAX_BUFFER_EQBC];
@@ -388,14 +388,12 @@ void CSockio::vPrintSockErr()
 void CSockio::vShutdownSockets()
 {
 	// Shutdown sockets
-	WSACancelBlockingCall();
 	WSACleanup();
 }
 
 // ---------------------------------------------------------------------
 int CSockio::iStartupSockets(int iVerbose)
 {
-	// Make sure that version 1.1
 	WORD wVersionRequested;
 	WSADATA wsaData;
 	int err;
@@ -426,12 +424,12 @@ int CSockio::iStartupSockets(int iVerbose)
 		}
 	}
 
-	// Confirm that the Windows Sockets DLL supports 1.1.  Note that if the
-	// DLL supports versions greater than 1.1 in addition to 1.1, it will
-	// still return 1.1 in wVersion since that is the version we requested.
+	// Confirm that the Windows Sockets DLL supports our version.  Note that if the
+	// DLL supports versions greater than our version in addition to our version, it will
+	// still return correctly in wVersion since that is the version we requested.
 
-	if ( LOBYTE( wsaData.wVersion ) != 1 ||
-		HIBYTE( wsaData.wVersion ) != 1 ) {
+	if ( LOBYTE( wsaData.wVersion ) != WS_MAJOR ||
+		HIBYTE( wsaData.wVersion ) != WS_MINOR) {
 		// Tell the user that we couldn't find a useable winsock.dll.
 		return -1;
 	}
@@ -643,7 +641,7 @@ int CSockio::iCloseSock(int iSockHandle, int iShut, int iLinger, int iTrace)
 
 		FD_SET(iSockHandle, &fds);
 
-		while (select(iSockHandle, &fds, NULL, NULL, &timeOut) > 0 && recv(iSockHandle, &bByte, 1, 0) == 1)
+		while (select(iSockHandle, &fds, nullptr, nullptr, &timeOut) > 0 && recv(iSockHandle, &bByte, 1, 0) == 1)
 		{
 			if (iTrace) {
 				CTrace::iTracef("{%d:%c}", (int)bByte, bByte);
@@ -695,7 +693,7 @@ int CSockio::iOpenSock(int *piSockHandle, char *pszSocketAddr, int iSocketPort, 
 	}
 
 	rAddr.sin_family = AF_INET;
-	rAddr.sin_addr.s_addr = inet_addr(pszSocketAddr);
+	inet_pton(AF_INET, pszSocketAddr, &rAddr.sin_addr.s_addr);
 	rAddr.sin_port = iSocketPort;
 
 	iRet = connect(iSockHandle, (struct sockaddr *)&rAddr, sizeof(rAddr));
@@ -852,7 +850,7 @@ void CCharBuf::writeChar(char ch)
 	cbn->writech(ch);
 }
 
-void CCharBuf::writesz(char *szStr)
+void CCharBuf::writesz(const char* szStr)
 {
 	if (szStr) {
 		while (*szStr) {
@@ -884,7 +882,7 @@ char CCharBuf::readChar()
 // ---------------------------------------------------------------------
 // ClientNode Stuff
 // ---------------------------------------------------------------------
-CClientNode::CClientNode(char *szCharName, int iSocketHandle, CClientNode *newNext)
+CClientNode::CClientNode(const char* szCharName, int iSocketHandle, CClientNode* newNext)
 {
 	bAuthorized = 0;
 	bCmdMode = 0;
@@ -1062,7 +1060,7 @@ void CEqbcs::WriteLocalChar(char ch)
 // Send String to local only
 // ---------------------------------------------------------------------
 
-void CEqbcs::WriteLocalString(char *szStr)
+void CEqbcs::WriteLocalString(const char* szStr)
 {
 	while (*szStr) {
 		WriteLocalChar(*szStr);
@@ -1088,7 +1086,7 @@ void CEqbcs::AppendCharToAll(char ch)
 // ---------------------------------------------------------------------
 // Write To All
 // ---------------------------------------------------------------------
-void CEqbcs::SendToAll(char *szStr)
+void CEqbcs::SendToAll(const char* szStr)
 {
 	if (szStr) {
 		while (*szStr) {
@@ -1241,20 +1239,23 @@ void CEqbcs::HandleNewClient(struct sockaddr_in *sockAddress)
 	int iSocketHandle;
 	int iBytesWrote;
 	int addrlen=sizeof(*sockAddress);
-	char *loginName = "--LOGIN--";
+	const char* loginName = "--LOGIN--";
 
-	iSocketHandle = (int)accept((unsigned)iServerHandle, (struct sockaddr *)sockAddress, (socklen_t *)&addrlen);
+	// TODO: Verify the socklen_t cast is required for unix.
+	iSocketHandle = (int)accept((unsigned)iServerHandle, (struct sockaddr *)sockAddress, (socklen_t*)&addrlen);
 
 	if (iSocketHandle < 0) {
-	perror("Failed to connect new client - accept");
-	return;
+		perror("Failed to connect new client - accept");
+		return;
 	}
 
 	if (countClients() < MAX_CLIENTS) {
-		sprintf_s(buf, "-- Client connection: fd %d (%s)\n", iSocketHandle, inet_ntoa(sockAddress->sin_addr));
-	WriteLocalString(buf);
+		char clientIP[INET_ADDRSTRLEN] = { 0 };
+		inet_ntop(AF_INET, &sockAddress->sin_addr, clientIP, INET_ADDRSTRLEN);
+		sprintf_s(buf, "-- Client connection: fd %d (%s)\n", iSocketHandle, clientIP);
+		WriteLocalString(buf);
 
-	clientList = new CClientNode(loginName, iSocketHandle, clientList);
+		clientList = new CClientNode(loginName, iSocketHandle, clientList);
 	}
 	else {
 	WriteLocalString("-- Incoming client rejected -- too many connections\n");
@@ -1514,11 +1515,10 @@ void CEqbcs::DoCommand(CClientNode *cn)
 				return;
 			}
 		}
+		if (cn->outBuf)	cn->outBuf->writesz("-- Unknown Command: ");
+		if (cn->cmdBuf) cn->outBuf->writesz(cn->cmdBuf);
+		if (cn->outBuf) cn->outBuf->writesz(".\n");
 	}
-
-	cn->outBuf->writesz("-- Unknown Command: ");
-	if (cn->cmdBuf) cn->outBuf->writesz(cn->cmdBuf);
-	cn->outBuf->writesz(".\n");
 }
 
 void CEqbcs::PingAllClients( time_t curTime )
@@ -2019,7 +2019,7 @@ void CEqbcs::setPort(int newPort)
 // ---------------------------------------------------------------------
 in_addr_t CEqbcs::setAddr(char* newAddr)
 {
-	this->iAddr = inet_addr(newAddr);
+	inet_pton(AF_INET, newAddr, &this->iAddr);
 	return(this->iAddr);
 }
 
