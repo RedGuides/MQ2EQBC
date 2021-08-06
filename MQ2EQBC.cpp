@@ -28,6 +28,9 @@
 PreSetup("MQ2EQBC");
 PLUGIN_VERSION(19.0606);
 
+constexpr int WINSOCK_MAJOR = 2;
+constexpr int WINSOCK_MINOR = 2;
+
 // --------------------------------------
 // constants
 const char*        CONNECT_START      = "LOGIN";
@@ -259,7 +262,7 @@ public:
 			}
 			else
 			{
-				sprintf_s(szMsg, "\ar#\ax Invalid value given - proper example: /bccmd set reconnectsecs 15");
+				strcpy_s(szMsg, "\ar#\ax Invalid value given - proper example: /bccmd set reconnectsecs 15");
 			}
 			WriteOut(szMsg);
 			return;
@@ -686,7 +689,7 @@ private:
 	void NewWnd()
 	{
 		char szWindowText[MAX_STRING] = { 0 };
-		sprintf_s(szWindowText, "%s", szServer);
+		strcpy_s(szWindowText, szServer);
 		BCWnd = new CEQBCWnd("ChatWindow");
 
         SET->CustTitle         = GetPrivateProfileInt(SET->SaveByChar ? szCharName : "Window", "UseMyTitle",   0,    INIFileName);
@@ -954,7 +957,7 @@ public:
 			if (SET->EchoAll)
 			{
 				char szTemp[MAX_STRING] = { 0 };
-				sprintf_s(szTemp, "<%s> [+r+]([+o+]to all[+r+])[+w+] %s", ((PSPAWNINFO)pLocalPlayer)->Name, szLine);
+				sprintf_s(szTemp, "<%s> [+r+]([+o+]to all[+r+])[+w+] %s", pLocalPlayer->Name, szLine);
 				HandleIncomingString(szTemp, false, silent);
 			}
 			ChanTransmit(szCmdAll, szLine);
@@ -1135,7 +1138,7 @@ public:
 			char szOutput[MAX_STRING] = { 0 };
 			if (!strncmp(pRawmsg, "NBJOIN=", 7))
 			{
-				sprintf_s(szOutput, "%s", &pRawmsg[7]);
+				strcpy_s(szOutput, &pRawmsg[7]);
 				connectedcharacters.push_back(szOutput); // Add new people to connectedcharacters when they connect to the server
 				sprintf_s(szOutput, "\ar#\ax - %s has joined the server.", &pRawmsg[7]);
 				WriteOut(szOutput);
@@ -1146,7 +1149,7 @@ public:
 			}
 			if (!strncmp(pRawmsg, "NBQUIT=", 7))
 			{
-				sprintf_s(szOutput, "%s", &pRawmsg[7]);
+				strcpy_s(szOutput, &pRawmsg[7]);
 				connectedcharacters.remove(szOutput); // Remove people to connectedcharacters when they leave the server
 				sprintf_s(szOutput, "\ar#\ax - %s has left the server.", &pRawmsg[7]);
 				WriteOut(szOutput);
@@ -1497,7 +1500,7 @@ private:
 	{
 		char szMsg[MAX_STRING] = { 0 };
 
-		usSockVersion = MAKEWORD(1, 1);
+		usSockVersion = MAKEWORD(WINSOCK_MAJOR, WINSOCK_MINOR);
 		WSAStartup(usSockVersion, &wsaData);
 		pHostEntry = gethostbyname(szServer);
 		if (!pHostEntry)
@@ -1615,7 +1618,7 @@ private:
 		}
 
 		if (!pLocalPlayer) return;
-		sprintf_s(szTemp, pszCmd);
+		strcpy_s(szTemp, pszCmd);
 		CleanEnd(szTemp);
 		DoCommand((PSPAWNINFO)pLocalPlayer, szTemp);
 	};
@@ -1991,7 +1994,7 @@ bool EQBCType::GetMember(MQVarPtr VarPtr, const char* Member, char* Index, MQTyp
 		Dest.Type = mq::datatypes::pBoolType;
 		return true;
 	case VarMembers::Server:
-		sprintf_s(DataTypeTemp, "OFFLINE");
+		strcpy_s(DataTypeTemp, "OFFLINE");
 		if (EQBC->Connected)
 		{
 			strcpy_s(DataTypeTemp, szServer);
@@ -2000,7 +2003,7 @@ bool EQBCType::GetMember(MQVarPtr VarPtr, const char* Member, char* Index, MQTyp
 		Dest.Type = mq::datatypes::pStringType;
 		return true;
 	case VarMembers::Port:
-		sprintf_s(DataTypeTemp, "OFFLINE");
+		strcpy_s(DataTypeTemp, "OFFLINE");
 		if (EQBC->Connected)
 		{
 			strcpy_s(DataTypeTemp, szPort);
@@ -2009,7 +2012,7 @@ bool EQBCType::GetMember(MQVarPtr VarPtr, const char* Member, char* Index, MQTyp
 		Dest.Type = mq::datatypes::pStringType;
 		return true;
 	case VarMembers::ToonName:
-		sprintf_s(DataTypeTemp, "OFFLINE");
+		strcpy_s(DataTypeTemp, "OFFLINE");
 		if (EQBC->Connected)
 		{
 			strcpy_s(DataTypeTemp, szToonName);
@@ -2130,16 +2133,12 @@ void BccmdCmd(PSPAWNINFO pLPlayer, char* szline)
 	}
 	if (!_strnicmp(szArg, "set", 4))
 	{
-		char szTempSet[MAX_STRING] = { 0 };
-		sprintf_s(szTempSet, "%s", GetNextArg(szCmd, 1, FALSE, 0));
-		SET->Change(szTempSet, false);
+		SET->Change(GetNextArg(szCmd), false);
 		return;
 	}
 	else if (!_strnicmp(szArg, "toggle", 7))
 	{
-		char szTempSet[MAX_STRING] = { 0 };
-		sprintf_s(szTempSet, "%s", GetNextArg(szCmd, 1, FALSE, 0));
-		SET->Change(szTempSet, true);
+		SET->Change(GetNextArg(szCmd), true);
 		return;
 	}
 
@@ -2379,12 +2378,12 @@ PLUGIN_API void OnPulse()
 	EQBC->Pulse();
 }
 
-PLUGIN_API void SetGameState(unsigned long ulGameState)
+PLUGIN_API void SetGameState(int GameState)
 {
-	if (ulGameState == GAMESTATE_INGAME)
+	if (GameState == GAMESTATE_INGAME)
 	{
 		// setup new char name on zone (for INI writes)
-		sprintf_s(szCharName, "%s.%s", EQADDR_SERVERNAME, ((PCHARINFO)pCharData)->Name);
+		sprintf_s(szCharName, "%s.%s", EQADDR_SERVERNAME, pCharData->Name);
 		// load ini settings if entering to world
 		if (!SET->Loaded)
 		{
@@ -2414,7 +2413,7 @@ PLUGIN_API void SetGameState(unsigned long ulGameState)
 	}
 	else
 	{
-		if (ulGameState == GAMESTATE_CHARSELECT)
+		if (GameState == GAMESTATE_CHARSELECT)
 		{
 			// kill window at char select
 			WINDOW->Destroy(true);
@@ -2425,7 +2424,7 @@ PLUGIN_API void SetGameState(unsigned long ulGameState)
 			return;
 		}
 		// (server select) 0 && -1 normally leave connection open if '/camp server'
-		if (ulGameState == -1) // wtb GAMESTATE_SERVERSELECT
+		if (GameState == -1) // wtb GAMESTATE_SERVERSELECT
 		{
 			WINDOW->Destroy(false);
 			SET->Loaded = false;
