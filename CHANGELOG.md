@@ -1,5 +1,6 @@
-Aug 4th, 2021 - Version 1.5
+Aug 6th, 2021 - Version 1.5
 - Highlander edition - combined several different versions of EQBCS into one
+- Updated to Winsock 2.2
 
 Dec 15th, 2008 - Version 1.2.i2
 - Added support for EQBC Interface by ieatacid 

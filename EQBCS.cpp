@@ -1278,7 +1278,7 @@ void CEqbcs::HandleUpdateChannels(CClientNode *cn)
 	while (cn->inBuf->hasWaiting())
 		szTemp[i++]=cn->inBuf->readChar();
 	szTemp[i]=0;
-	int bufflen = strlen(szTemp) + 1;
+	int bufflen = static_cast<int>(strlen(szTemp)) + 1;
 	cn->chanList = new char[bufflen];
 	strcpy_s(cn->chanList, bufflen, szTemp);
 	sprintf_s(szTemp, "%s joined channels %s.\n", cn->szCharName, cn->chanList);
@@ -1783,7 +1783,7 @@ void CEqbcs::AuthorizeClients()
 		char INIFileName[MAX_PATH];
 		strcpy_s(szLoginStr, LOGIN_START_TOKEN);
 		GetModuleFileNameA(NULL, INIFileName, MAX_PATH);
-		int gsd=strlen(INIFileName)-1;
+		int gsd = static_cast<int>(strlen(INIFileName)) - 1;
 		while(gsd>=0 && INIFileName[gsd]) {
 			if(INIFileName[gsd] == '\\')
 				break;
