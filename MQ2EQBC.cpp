@@ -140,13 +140,7 @@ unsigned long __stdcall EQBCConnectThread(void* lpParam);
 
 inline bool ValidIngame()
 {
-	// CTD prevention function
-	PSPAWNINFO pChSpawn = (PSPAWNINFO)pCharSpawn;
-	if (GetGameState() != GAMESTATE_INGAME || !pLocalPlayer || !pChSpawn->SpawnID)
-	{
-		return false;
-	}
-	return true;
+	return GetGameState() == GAMESTATE_INGAME && pLocalPlayer != nullptr && pLocalPlayer->SpawnID > 0;
 }
 
 inline char* GetCharName()
