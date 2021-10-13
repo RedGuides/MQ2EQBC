@@ -10,7 +10,11 @@
 #define strcasecmp _stricmp
 #pragma comment(lib,"wsock32.lib")
 #pragma comment(lib,"ws2_32.lib")
+
+#if !defined(WIN32_LEAN_AND_MEAN)
 #define WIN32_LEAN_AND_MEAN
+#endif
+
 #include <Windows.h>
 #include <tchar.h>
 #include <WS2tcpip.h>
