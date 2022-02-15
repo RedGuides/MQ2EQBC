@@ -836,9 +836,9 @@ public:
 	{
 		if (!Connected) return;
 		int iErr = 0;
-		iErr = send(theSocket, szMsg, strlen(szMsg), 0);
+		iErr = send(theSocket, szMsg, (int)strlen(szMsg), 0);
 		if (bHandleDisconnect) CheckError("Transmit:SendMsg", iErr);
-		iErr = send(theSocket, SEND_LINE_TERM, strlen(SEND_LINE_TERM), 0);
+		iErr = send(theSocket, SEND_LINE_TERM, (int)strlen(SEND_LINE_TERM), 0);
 		if (bHandleDisconnect) CheckError("Transmit:SendTerm", iErr);
 	};
 
@@ -848,7 +848,7 @@ public:
         int  iErr          = 0;
         char szCommand[15] = {0};
 		sprintf_s(szCommand, "%s%i\n", CMD_LOCALECHO, SET->LocalEcho);
-		iErr = send(theSocket, szCommand, strlen(szCommand), 0);
+		iErr = send(theSocket, szCommand, (int)strlen(szCommand), 0);
 		CheckError("SendLocalEcho:Send1", iErr);
 	};
 
@@ -887,7 +887,7 @@ public:
 						int iDest = 0;
 						int iLen = 0;
 
-						iLen = strlen(Name);
+						iLen = (int)strlen(Name);
 						iDest += WriteStringGetCount(&szTemp[iDest], COLOR_STELL1);
 						while (Name[iSrc] != ' ' && Name[iSrc] != '\n' && iSrc <= iLen)
 						{
@@ -922,7 +922,7 @@ public:
                 int iDest               = 0;
                 int iLen                = 0;
 
-				iLen   = strlen(szLine);
+				iLen   = (int)strlen(szLine);
 				iDest += WriteStringGetCount(&szTemp[iDest], COLOR_STELL1);
 				while (szLine[iSrc] != ' ' && szLine[iSrc] != '\n' && iSrc <= iLen)
 				{
@@ -1402,7 +1402,7 @@ public:
 		bGotNames = false;
 		if (!ConnectReady()) return;
 		WriteOut("\ar#\ax Requesting names...");
-		int iErr = send(theSocket, CMD_NAMES, strlen(CMD_NAMES), 0);
+		int iErr = send(theSocket, CMD_NAMES, (int)strlen(CMD_NAMES), 0);
 		CheckError("HandleNamesRequest:send", iErr);
 	};
 
@@ -1579,9 +1579,9 @@ private:
 			return;
 
 		if (pszCmd && pszCmd[0]) {
-			int len = strlen(pszCmd);
+			int len = (int)strlen(pszCmd);
 			if (char*pDest = strchr(pszCmd, '%')) {
-				int len2 = pDest - pszCmd;
+				int len2 = (int)(pDest - pszCmd);
 				if (pDest[1] == '\0')
 				{
 					Sleep(0);
@@ -1657,11 +1657,11 @@ private:
 	void ChanTransmit(char* szCommand, char* szLine)
 	{
 		int iErr = 0;
-		iErr = send(theSocket, szCommand, strlen(szCommand), 0);
+		iErr = send(theSocket, szCommand, (int)strlen(szCommand), 0);
 		CheckError("ChanTransmit:SendCmd", iErr);
-		iErr = send(theSocket, szLine, strlen(szLine), 0);
+		iErr = send(theSocket, szLine, (int)strlen(szLine), 0);
 		CheckError("ChanTransmit:SendLine", iErr);
-		iErr = send(theSocket, SEND_LINE_TERM, strlen(SEND_LINE_TERM), 0);
+		iErr = send(theSocket, SEND_LINE_TERM, (int)strlen(SEND_LINE_TERM), 0);
 		CheckError("ChanTransmit:SendTerm", iErr);
 	};
 
@@ -1675,11 +1675,11 @@ private:
 
 		if (szLine && strlen(szLine))
 		{
-			iErr = send(theSocket, szCommand, strlen(szCommand), 0);
+			iErr = send(theSocket, szCommand, (int)strlen(szCommand), 0);
 			CheckError("BciTransmit:Send1", iErr);
-			iErr = send(theSocket, szLine, strlen(szLine), 0);
+			iErr = send(theSocket, szLine, (int)strlen(szLine), 0);
 			CheckError("BciTransmit:Send2", iErr);
-			iErr = send(theSocket, SEND_LINE_TERM, strlen(SEND_LINE_TERM), 0);
+			iErr = send(theSocket, SEND_LINE_TERM, (int)strlen(SEND_LINE_TERM), 0);
 			CheckError("BciTransmit:Send3", iErr);
 		}
 	};
@@ -1791,7 +1791,7 @@ private:
 		if (pszStr && *pszStr)
 		{
 			int iLen = 0;
-			for (iLen = strlen(pszStr) - 1; iLen >= 0 && strchr(" \r\n", pszStr[iLen]); pszStr[iLen--] = 0);
+			for (iLen = (int)strlen(pszStr) - 1; iLen >= 0 && strchr(" \r\n", pszStr[iLen]); pszStr[iLen--] = 0);
 		}
 	};
 
@@ -1820,16 +1820,16 @@ unsigned long __stdcall EQBCConnectThread(void* lpParam)
 		ioctlsocket(theSocket, FIONBIO, &ulNonblocking);
 		Sleep((clock_t)4 * CLOCKS_PER_SEC / 2);
 
-		send(theSocket, CONNECT_START, strlen(CONNECT_START), 0);
+		send(theSocket, CONNECT_START, (int)strlen(CONNECT_START), 0);
 		if (*szPassword)
 		{
 			// DebugSpew("With Password");
-			send(theSocket, CONNECT_PWSEP, strlen(CONNECT_PWSEP), 0);
-			send(theSocket, szPassword, strlen(szPassword), 0);
+			send(theSocket, CONNECT_PWSEP, (int)strlen(CONNECT_PWSEP), 0);
+			send(theSocket, szPassword, (int)strlen(szPassword), 0);
 		}
-		send(theSocket, CONNECT_START2, strlen(CONNECT_START2), 0);
-		send(theSocket, szToonName, strlen(szToonName), 0);
-		send(theSocket, CONNECT_END, strlen(CONNECT_END), 0);
+		send(theSocket, CONNECT_START2, (int)strlen(CONNECT_START2), 0);
+		send(theSocket, szToonName, (int)strlen(szToonName), 0);
+		send(theSocket, CONNECT_END, (int)strlen(CONNECT_END), 0);
 		EQBC->Connected = true;
 	}
 
@@ -2446,7 +2446,7 @@ PLUGIN_API unsigned long OnIncomingChat(char* szLine, unsigned long ulColor)
     char          szTell[MAX_STRING]     = {0};
     char          szOutgoing[MAX_STRING] = {0};
     char*         pszText                = NULL;
-    unsigned long n                      = strchr(&szLine[2], '\x12') - &szLine[2];
+    unsigned long n                      = (unsigned long)(strchr(&szLine[2], '\x12') - &szLine[2]);
 
 	strncpy_s(szSender, &szLine[2], n);
 
