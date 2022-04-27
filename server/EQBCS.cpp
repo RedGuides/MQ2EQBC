@@ -1,5 +1,5 @@
 #define PROG_TITLE "EQBCS (EQ Box Chat Server)"
-#define PROG_VERSION "1.5"
+#define PROG_VERSION "1.6"
 
 #define LOGIN_START_TOKEN "LOGIN="
 
@@ -20,6 +20,10 @@
 #include <WS2tcpip.h>
 constexpr int WS_MAJOR = 2;
 constexpr int WS_MINOR = 2;
+
+#include <mq/base/String.h>
+#include <mq/utils/Naming.h>
+#include <wil/resource.h>
 #endif
 
 #include <stdio.h>
@@ -1774,6 +1778,11 @@ void CEqbcs::KickOffSameName(CClientNode *cnCheck)
 	}
 }
 
+std::string GetINIFileName(std::filesystem::path exePath)
+{
+	return (exePath.parent_path() / "EQBCS.ini").string();
+}
+
 // ---------------------------------------------------------------------
 // Authorize Clients
 // ---------------------------------------------------------------------
@@ -1784,21 +1793,9 @@ void CEqbcs::AuthorizeClients()
 	int copied=0;
 
 	if(!bInitialized) {
-		char INIFileName[MAX_PATH];
 		strcpy_s(szLoginStr, LOGIN_START_TOKEN);
-		GetModuleFileNameA(NULL, INIFileName, MAX_PATH);
-		int gsd = static_cast<int>(strlen(INIFileName)) - 1;
-		while(gsd>=0 && INIFileName[gsd]) {
-			if(INIFileName[gsd] == '\\')
-				break;
-			INIFileName[gsd] = 0;
-			gsd--;
-		}
-		if(INIFileName[strlen(INIFileName)-1] != '\\')
-			strcat_s(INIFileName, "\\");
-		strcat_s(INIFileName, "EQBCS.ini");
 		char szBuffer[MAX_BUFFER_EQBC];
-		GetPrivateProfileStringA("Settings", "Password", "", szBuffer, MAX_BUFFER_EQBC, INIFileName);
+		GetPrivateProfileStringA("Settings", "Password", "", szBuffer, MAX_BUFFER_EQBC, GetINIFileName(__argv[0]).c_str());
 		if(szBuffer[0])
 			sprintf_s(szLoginStr, "LOGIN:%s=", szBuffer);
 		bInitialized=true;
@@ -2087,12 +2084,13 @@ int main(int argc, char *argv[])
 	struct passwd *pw;
 	char szUsername[LOGIN_NAME_MAX+1]="\0";
 #endif
-	int i;
 
 	fflush(stdout);
 	CEqbcs bcs;
 
-	for (i=1; i<argc; i++) {
+	bool renamedProcess = false;
+
+	for (int i = 1; i < argc; ++i) {
 		if (_strnicmp("-p", argv[i],2)==0) {
 			if (strchr("1234567890", *argv[++i])!=NULL)
 				bcs.setPort(atoi((const char *)argv[i]));
@@ -2104,15 +2102,6 @@ int main(int argc, char *argv[])
 #ifndef UNIXWIN
 		else if (_strnicmp("-d", argv[i],2)==0) {
 			dofork=1;
-		}
-		else if (_strnicmp("-u", argv[i],2)==0) {
-			if (argv[++i]) {
-				strncpy_s(szUsername, argv[i], LOGIN_NAME_MAX);
-			}
-			else {
-				giveusage=1;
-				i=argc+1;
-			}
 		}
 #endif
 		else if (_strnicmp("-i", argv[i],2)==0) {
@@ -2127,10 +2116,11 @@ int main(int argc, char *argv[])
 			i=argc+1;
 			}
 		}
-		else if (_strnicmp("-t", argv[i],2)==0) {
-			i++;
-			SOCKTRACE = true;
+#ifdef UNIXWIN
+		else if (_strnicmp("-r", argv[i],2)==0) {
+			renamedProcess = true;
 		}
+#endif
 		else if (_strnicmp("-s", argv[i],2)==0) {
 			strcpy_s(szLoginStr, LOGIN_START_TOKEN);
 			i++;
@@ -2143,6 +2133,21 @@ int main(int argc, char *argv[])
 				i=argc+1;
 			}
 		}
+		else if (_strnicmp("-t", argv[i],2)==0) {
+			i++;
+			SOCKTRACE = true;
+		}
+#ifndef UNIXWIN
+		else if (_strnicmp("-u", argv[i],2)==0) {
+			if (argv[++i]) {
+				strncpy_s(szUsername, argv[i], LOGIN_NAME_MAX);
+			}
+			else {
+				giveusage=1;
+				i=argc+1;
+			}
+		}
+#endif
 		else {
 			giveusage=1;
 		}
@@ -2151,19 +2156,114 @@ int main(int argc, char *argv[])
 	if (giveusage==1) {
 		fprintf(stderr, "Usage: eqbcs [options]\n");
 		fprintf(stderr, "  Options are as follows:\n");
+#ifndef UNIXWIN
+		fprintf(stderr, "  -d       \tRun as daemon (UNIX only)\n");
+#endif
 		fprintf(stderr, "  -p <port>\tPort to listen on\n");
 		fprintf(stderr, "  -i <addr>\tIP Address to bind to\n");
 		fprintf(stderr, "  -l <file>\tOutput to logfile rather than STDOUT\n");
+#ifdef UNIXWIN
+		fprintf(stderr, "  -r\t\tDisable process renaming (WIN only)\n");
+#endif
 		fprintf(stderr, "  -s <password>\tPassword to require for communication\n");
 		fprintf(stderr, "  -t\t\tEnable socket trace\n");
 #ifndef UNIXWIN
-		fprintf(stderr, "  -d       \tRun as daemon (UNIX only)\n");
+		fprintf(stderr, "  -u       \tSpecify user (UNIX only)\n");
 #endif
 		fflush(stderr);
 		exit(1);
 	}
 
-#ifndef UNIXWIN
+#ifdef UNIXWIN
+	if (!renamedProcess) {
+		char szFileName[MAX_PATH] = { 0 };
+		GetModuleFileNameA(nullptr, szFileName, MAX_PATH);
+		std::filesystem::path thisProgramPath = szFileName;
+
+		if(!thisProgramPath.is_absolute())
+		{
+			std::error_code ec;
+			thisProgramPath = absolute(thisProgramPath, ec);
+		}
+
+		char oldProcessName[MAX_PATH] = { 0 };
+		// Clean up the old process file
+		GetPrivateProfileStringA("Internal", "RenamedProcess", "", oldProcessName, MAX_PATH, GetINIFileName(argv[0]).c_str());
+
+		if (oldProcessName[0] != '\0')
+		{
+			// Maybe this already is the renamed process (also allows for static names by setting RenamedProcess to the name in the ini)
+			if (mq::ci_equals(oldProcessName, thisProgramPath.filename().string()))
+			{
+				renamedProcess = true;
+			}
+			else
+			{
+				const std::filesystem::path oldProgramPath = thisProgramPath.parent_path() / oldProcessName;
+				std::error_code ec;
+				if (exists(oldProgramPath, ec))
+				{
+					if (!remove(oldProgramPath))
+					{
+						fprintf(stderr, "Could not delete previous loader: %s", oldProgramPath.string().c_str());
+					}
+				}
+			}
+		}
+
+		if (!renamedProcess)
+		{
+			const std::filesystem::path newProgramPath = mq::GetUniqueFileName(thisProgramPath.parent_path(), "exe");
+			std::error_code ec;
+			if (std::filesystem::copy_file(thisProgramPath, newProgramPath, ec))
+			{
+				std::string fullCommandLine = '"' + newProgramPath.string() + '"';
+				fullCommandLine += " -r";
+				for (int i = 1; i < argc; ++i) {
+					fullCommandLine += " ";
+					if (mq::find_substr(argv[i], " ") != -1)
+					{
+						fullCommandLine += '"';
+						fullCommandLine += argv[i];
+						fullCommandLine += '"';
+					}
+					else
+					{
+						fullCommandLine += argv[i];
+					}
+				}
+
+				STARTUPINFOA si = {};
+				wil::unique_process_information pi;
+
+				if (CreateProcessA(newProgramPath.string().c_str(), // Application Name - Null says use command line processor
+						&fullCommandLine[0], // Command line arguments
+						nullptr,            // Process Attributes - handle not inheritable
+						nullptr,            // Thread Attributes - handle not inheritable
+						false,              // Set handle inheritance to FALSE
+						CREATE_NEW_CONSOLE, // Creation Flags - Create a new console window instead of running in the existing console
+						nullptr,            // Use parent's environment block
+						nullptr,            // Use parent's starting directory
+						&si,  // Pointer to STARTUPINFO structure
+						&pi)  // Pointer to PROCESS_INFORMATION structure
+					)
+				{
+					WritePrivateProfileStringA("Internal", "RenamedProcess", newProgramPath.filename().string().c_str(), GetINIFileName(argv[0]).c_str());
+				}
+				else
+				{
+					fprintf(stderr, "Could not launch copy of this program at: %s", newProgramPath.string().c_str());
+				}
+			}
+			else
+			{
+				fprintf(stderr, "Could not create duplicate of this program at: %s", newProgramPath.string().c_str());
+			}
+			fflush(stderr);
+			exit(0);
+		}
+	}
+#else
 	if (szUsername[0]!='\0') {
 		if ((pw=getpwnam(szUsername))==NULL) {
 			fprintf(stderr, "ERROR: Cannot find user %s.\n",szUsername);
