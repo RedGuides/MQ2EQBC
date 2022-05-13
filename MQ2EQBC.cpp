@@ -2377,7 +2377,7 @@ PLUGIN_API void SetGameState(int GameState)
 	if (GameState == GAMESTATE_INGAME)
 	{
 		// setup new char name on zone (for INI writes)
-		sprintf_s(szCharName, "%s.%s", EQADDR_SERVERNAME, pCharData->Name);
+		sprintf_s(szCharName, "%s.%s", GetServerShortName(), pLocalPC->Name);
 		// load ini settings if entering to world
 		if (!SET->Loaded)
 		{
