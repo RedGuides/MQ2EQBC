@@ -116,11 +116,15 @@
     <ClCompile Include="EQBCS.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ResourceCompile Include="EQBCS.rc" />
+  </ItemGroup>
+  <ItemGroup>
     <None Include="README.md" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\..\include\mq\base\String.h" />
     <ClInclude Include="..\..\..\include\mq\utils\Naming.h" />
+    <ClInclude Include="version.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

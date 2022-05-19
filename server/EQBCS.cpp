@@ -1,6 +1,7 @@
-#define PROG_TITLE "EQBCS (EQ Box Chat Server)"
-#define PROG_VERSION "1.6"
+// TODO: Unicode is defined in the project file, but there's mostly calls to the non-unicode functions for windows.
+//       Determine which is best and homogenize.
 
+#include "version.h"
 #define LOGIN_START_TOKEN "LOGIN="
 
 #define STANDALONE
@@ -17,6 +18,7 @@
 
 #include <Windows.h>
 #include <tchar.h>
+#include <TlHelp32.h>
 #include <WS2tcpip.h>
 constexpr int WS_MAJOR = 2;
 constexpr int WS_MINOR = 2;
@@ -935,6 +937,30 @@ CClientNode::~CClientNode()
 }
 
 // ---------------------------------------------------------------------
+// Utility
+// ---------------------------------------------------------------------
+#ifdef UNIXWIN
+bool IsProcessRunning(const wchar_t* exeName)
+{
+	wil::unique_tool_help_snapshot hSnapshot(CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0));
+
+	PROCESSENTRY32 proc = { sizeof(PROCESSENTRY32) };
+	if (Process32First(hSnapshot.get(), &proc))
+	{
+		do
+		{
+			if (mq::ci_equals(proc.szExeFile, exeName))
+			{
+				return true;
+			}
+		} while (Process32Next(hSnapshot.get(), &proc));
+	}
+
+	return false;
+}
+#endif
+
+// ---------------------------------------------------------------------
 // Eqbcs Stuff
 // ---------------------------------------------------------------------
 CEqbcs::CEqbcs()
@@ -1780,7 +1806,8 @@ void CEqbcs::KickOffSameName(CClientNode *cnCheck)
 
 std::string GetINIFileName(std::filesystem::path exePath)
 {
-	return (exePath.parent_path() / "EQBCS.ini").string();
+	std::error_code ec;
+	return absolute((exePath.parent_path() / "EQBCS.ini"), ec).string();
 }
 
 // ---------------------------------------------------------------------
@@ -2176,8 +2203,8 @@ int main(int argc, char *argv[])
 
 #ifdef UNIXWIN
 	if (!renamedProcess) {
-		char szFileName[MAX_PATH] = { 0 };
-		GetModuleFileNameA(nullptr, szFileName, MAX_PATH);
+		wchar_t szFileName[MAX_PATH] = { 0 };
+		GetModuleFileName(nullptr, szFileName, MAX_PATH);
 		std::filesystem::path thisProgramPath = szFileName;
 
 		if(!thisProgramPath.is_absolute())
@@ -2186,78 +2213,86 @@ int main(int argc, char *argv[])
 			thisProgramPath = absolute(thisProgramPath, ec);
 		}
 
-		char oldProcessName[MAX_PATH] = { 0 };
-		// Clean up the old process file
-		GetPrivateProfileStringA("Internal", "RenamedProcess", "", oldProcessName, MAX_PATH, GetINIFileName(argv[0]).c_str());
+		std::filesystem::path ProgramPath;
 
+		char oldProcessName[MAX_PATH] = { 0 };
+		GetPrivateProfileStringA("Internal", "RenamedProcess", "", oldProcessName, MAX_PATH, GetINIFileName(thisProgramPath).c_str());
 		if (oldProcessName[0] != '\0')
 		{
-			// Maybe this already is the renamed process (also allows for static names by setting RenamedProcess to the name in the ini)
-			if (mq::ci_equals(oldProcessName, thisProgramPath.filename().string()))
-			{
-				renamedProcess = true;
-			}
-			else
-			{
-				const std::filesystem::path oldProgramPath = thisProgramPath.parent_path() / oldProcessName;
-				std::error_code ec;
-				if (exists(oldProgramPath, ec))
-				{
-					if (!remove(oldProgramPath))
-					{
-						fprintf(stderr, "Could not delete previous loader: %s", oldProgramPath.string().c_str());
-					}
-				}
-			}
+			ProgramPath = thisProgramPath.parent_path() / oldProcessName;
+		}
+		else
+		{
+			ProgramPath = mq::GetUniqueFileName(thisProgramPath.parent_path(), "exe");
 		}
 
-		if (!renamedProcess)
+		// Launch a new process if this process isn't hte renamed process
+		if (!mq::ci_equals(ProgramPath.filename().wstring(), thisProgramPath.filename().wstring()))
 		{
-			const std::filesystem::path newProgramPath = mq::GetUniqueFileName(thisProgramPath.parent_path(), "exe");
 			std::error_code ec;
-			if (std::filesystem::copy_file(thisProgramPath, newProgramPath, ec))
+			if (exists(ProgramPath, ec))
 			{
-				std::string fullCommandLine = '"' + newProgramPath.string() + '"';
-				fullCommandLine += " -r";
-				for (int i = 1; i < argc; ++i) {
-					fullCommandLine += " ";
-					if (mq::find_substr(argv[i], " ") != -1)
+				if (IsProcessRunning(ProgramPath.filename().wstring().c_str()))
+				{
+					if (!mq::file_equals(thisProgramPath, ProgramPath))
 					{
-						fullCommandLine += '"';
-						fullCommandLine += argv[i];
-						fullCommandLine += '"';
+						fprintf(stdout, "Please exit out of the alternate EQBCS for an update: %ws\n", ProgramPath.wstring().c_str());
+						system("pause");
 					}
 					else
 					{
-						fullCommandLine += argv[i];
+						fprintf(stdout, "Alternate EQBCS is already running: %ws\n", ProgramPath.wstring().c_str());
+						exit(0);
 					}
 				}
-
-				STARTUPINFOA si = {};
-				wil::unique_process_information pi;
-
-				if (CreateProcessA(newProgramPath.string().c_str(), // Application Name - Null says use command line processor
-						&fullCommandLine[0], // Command line arguments
-						nullptr,            // Process Attributes - handle not inheritable
-						nullptr,            // Thread Attributes - handle not inheritable
-						false,              // Set handle inheritance to FALSE
-						CREATE_NEW_CONSOLE, // Creation Flags - Create a new console window instead of running in the existing console
-						nullptr,            // Use parent's environment block
-						nullptr,            // Use parent's starting directory
-						&si,  // Pointer to STARTUPINFO structure
-						&pi)  // Pointer to PROCESS_INFORMATION structure
-					)
+				if (!mq::file_equals(thisProgramPath, ProgramPath) && !remove(ProgramPath, ec))
 				{
-					WritePrivateProfileStringA("Internal", "RenamedProcess", newProgramPath.filename().string().c_str(), GetINIFileName(argv[0]).c_str());
+					fprintf(stderr, "Could not delete alternate EQBCS: %ws\n", ProgramPath.wstring().c_str());
+					exit(1);
+				}
+			}
+			if (!exists(ProgramPath, ec) && !std::filesystem::copy_file(thisProgramPath, ProgramPath, ec))
+			{
+				fprintf(stderr, "Could not create duplicate of this program at: %ws\n", ProgramPath.wstring().c_str());
+				exit(1);
+			}
+
+			std::string fullCommandLine = '"' + ProgramPath.string() + '"';
+			fullCommandLine += " -r";
+			for (int i = 1; i < argc; ++i) {
+				fullCommandLine += " ";
+				if (mq::find_substr(argv[i], " ") != -1)
+				{
+					fullCommandLine += '"';
+					fullCommandLine += argv[i];
+					fullCommandLine += '"';
 				}
 				else
 				{
-					fprintf(stderr, "Could not launch copy of this program at: %s", newProgramPath.string().c_str());
+					fullCommandLine += argv[i];
 				}
+			}
+
+			STARTUPINFOA si = {};
+			wil::unique_process_information pi;
+
+			if (CreateProcessA(ProgramPath.string().c_str(), // Application Name - Null says use command line processor
+					&fullCommandLine[0], // Command line arguments
+					nullptr,            // Process Attributes - handle not inheritable
+					nullptr,            // Thread Attributes - handle not inheritable
+					false,              // Set handle inheritance to FALSE
+					CREATE_NEW_CONSOLE, // Creation Flags - Create a new console window instead of running in the existing console
+					nullptr,            // Use parent's environment block
+					nullptr,            // Use parent's starting directory
+					&si,  // Pointer to STARTUPINFO structure
+					&pi)  // Pointer to PROCESS_INFORMATION structure
+				)
+			{
+				WritePrivateProfileStringA("Internal", "RenamedProcess", ProgramPath.filename().string().c_str(), GetINIFileName(thisProgramPath).c_str());
 			}
 			else
 			{
-				fprintf(stderr, "Could not create duplicate of this program at: %s", newProgramPath.string().c_str());
+				fprintf(stderr, "Could not launch alternate EQBCS at: %s\n", ProgramPath.string().c_str());
 			}
 			fflush(stderr);
 			exit(0);
