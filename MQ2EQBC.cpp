@@ -1634,17 +1634,14 @@ private:
 							//								pChar->zoneId, pChar2->Level, GetClassDesc(pChar2->Class), pEverQuest->GetRaceDesc(pChar2->Race), pChar->Exp,
 							//								pChar->AAExp, pChar2->AAPoints,pSpawn->StandState, (pSpawn->PetID == 0xFFFFFFFF) ? '0' : '1');
 							// Extended version for jimbob's eqbci Interface for MQ2EQBCS
-							#if !defined(ROF2EMU) && !defined(UFEMU)
 							sprintf_s(szBuff, "1|%d|%d|%d|%d|%d|%d|%d|%d|%s|%s|%I64d|%d|%d|%c|%c|%s|%f|%f|%f|%s|%d|%lld|%lld|%d|%s",
-							#else
-							sprintf_s(szBuff, "1|%d|%d|%d|%d|%d|%d|%d|%d|%s|%s|%I64d|%d|%d|%c|%c|%s|%f|%f|%f|%s|%d|%d|%d|%d|%s",
-							#endif
 								GetCurHPS(), GetMaxHPS(), GetCurMana(), GetMaxMana(), GetCurEndurance(), GetMaxEndurance(),
 								pChar->zoneId, pChar2->Level, GetClassDesc(pChar2->Class), pEverQuest->GetRaceDesc(pChar2->Race), pChar->Exp,
 								pChar->AAExp, pChar2->AAPoints, pSpawn->StandState, (pSpawn->PetID == 0xFFFFFFFF) ? '0' : '1',
-								((PZONEINFO)pZoneInfo)->ShortName, pSpawn->X, pSpawn->Y, pSpawn->Z,
-								(pTarget) ? pTarget->Name : "(null)", (pTarget) ? pTarget->Level : 0, (pTarget) ? pTarget->HPCurrent : 0, (pTarget) ? pTarget->HPMax : 0,
-								(pChar->pGroupInfo) ? 1 : 0, (pChar->pGroupInfo) ? pChar->pGroupInfo->pLeader->Name.c_str() : "(null)"
+								pZoneInfo->ShortName, pSpawn->X, pSpawn->Y, pSpawn->Z,
+								pTarget ? pTarget->Name : "(null)", (pTarget) ? pTarget->Level : 0,
+								static_cast<int64_t>(pTarget ? pTarget->HPCurrent : 0), static_cast<int64_t>(pTarget ? pTarget->HPMax : 0),
+								pChar->pGroupInfo ? 1 : 0, pChar->pGroupInfo ? pChar->pGroupInfo->pLeader->Name.c_str() : "(null)"
 							);
 							BciTransmit(szName, szBuff);
 						}
