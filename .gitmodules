@@ -1,0 +1,8 @@
+[submodule "server/contrib/mINI"]
+	path = server/contrib/mINI
+	url = https://github.com/pulzed/mINI.git
+	branch = master
+[submodule "server/contrib/safeclib"]
+	path = server/contrib/safeclib
+	url = https://github.com/rurban/safeclib.git
+	branch = master
