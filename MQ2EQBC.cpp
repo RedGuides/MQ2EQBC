@@ -1,5 +1,5 @@
 /***************************************************************/
-/* Version 1.0 by
+/* Version 1.0 by Omnictrl
 /*
 /*
 /* Version 14.1014 by EqMule
@@ -26,7 +26,7 @@
 #pragma comment(lib,"wsock32.lib")
 
 PreSetup("MQ2EQBC");
-PLUGIN_VERSION(19.0606);
+PLUGIN_VERSION(19.1);
 
 constexpr int WINSOCK_MAJOR = 2;
 constexpr int WINSOCK_MINOR = 2;
@@ -102,7 +102,7 @@ const char* szSetSaveConnectByChar = "saveconnectbychar";
 
 // --------------------------------------
 // strings
-char szPassword[MAX_PASSWORD]   = {0};
+std::string s_Password;
 char szServer[MAX_STRING]       = {0};
 char szPort[MAX_STRING]         = {0};
 char szToonName[MAX_STRING]     = {0};
@@ -192,7 +192,6 @@ public:
 
 	void LoadINI()
 	{
-		char szTemp[MAX_STRING] = { 0 };
         AllowControl  = GetPrivateProfileInt("Settings", "AllowControl",           1, INIFileName);
         AutoConnect   = GetPrivateProfileInt("Settings", "AutoConnect",            0, INIFileName);
         AutoReconnect = GetPrivateProfileInt("Settings", "AutoReconnect",          1, INIFileName);
@@ -216,19 +215,24 @@ public:
 
 		GetPrivateProfileString(SET->SaveConnectByChar ? szCharName : "Last Connect", "Server", "127.0.0.1", szServer, MAX_STRING, INIFileName);
 		GetPrivateProfileString(SET->SaveConnectByChar ? szCharName : "Last Connect", "Port", "2112", szPort, MAX_STRING, INIFileName);
+		s_Password = GetPrivateProfileString(SET->SaveConnectByChar ? szCharName : "Last Connect", "Password", "", INIFileName);
 
 		GetPrivateProfileString("Settings", "Keybind", "~", WndKey, MAX_STRING, INIFileName);
 		KeyCombo Combo;
 		ParseKeyCombo(WndKey, Combo);
 		SetMQ2KeyBind("EQBC", FALSE, Combo);
 		Loaded = true;
-	};
+	}
 
 	void UpdateServer()
 	{
 		WritePrivateProfileString(SET->SaveConnectByChar ? szCharName : "Last Connect", "Server", szServer, INIFileName);
 		WritePrivateProfileString(SET->SaveConnectByChar ? szCharName : "Last Connect", "Port", szPort, INIFileName);
-	};
+		if (!s_Password.empty())
+		{
+			WritePrivateProfileString(SET->SaveConnectByChar ? szCharName : "Last Connect", "Password", s_Password, INIFileName);
+		}
+	}
 
 	void Change(char* szSetting, bool bToggle)
 	{
@@ -376,7 +380,7 @@ public:
 		if (!bFailed) return;
 		sprintf_s(szMsg, "\ar#\ax Unsupported parameter. Valid options: %s", VALID_SETTINGS);
 		WriteOut(szMsg);
-	};
+	}
 
 	CSettingsMgr()
 	{
@@ -405,7 +409,7 @@ public:
 		memset(&WndKey, 0, MAX_STRING);
 		FirstLoad     = false;
         Loaded        = false;
-	};
+	}
 
 private:
 	int ToggleSetting(int* pbOption, bool* pbToggle, int* pbTurnOn, char* szOptName, char* szOptDesc)
@@ -417,7 +421,7 @@ private:
 		sprintf_s(szTemp, "%d", *pbOption);
 		WritePrivateProfileString("Settings", szOptName, szTemp, INIFileName);
 		return *pbOption;
-	};
+	}
 
 	void HandleWnd(bool);
 	void HandleEcho();
@@ -449,7 +453,7 @@ public:
         RemoveStyle(CWS_CLOSE);
         //        *(unsigned long*)&(((char*)StmlOut)[EQ_CHAT_HISTORY_OFFSET]) = 400;
         OutWnd->MaxLines = 400;
-    };
+    }
 
 	virtual int WndNotification(CXWnd* pWnd, unsigned int uiMessage, void* pData) override
 	{
@@ -548,7 +552,7 @@ public:
 			return p->WndNotification(pWnd, uiMessage, pData);
 		}
 		return CSidlScreenWnd::WndNotification(pWnd, uiMessage, pData);
-	};
+	}
 
 	void Clear()
 	{
@@ -583,7 +587,7 @@ public:
 		if (!SET->Window || !ValidIngame() || BCWnd)
 			return;
 		NewWnd();
-	};
+	}
 
 	void Destroy(bool bSave)
 	{
@@ -593,50 +597,50 @@ public:
 			SaveWnd();
 		delete BCWnd;
 		BCWnd = NULL;
-	};
+	}
 
 	void Clear()
 	{
 		if (!BCWnd) return;
 		BCWnd->Clear();
-	};
+	}
 
 	void Hover()
 	{
 		if (!BCWnd) return;
 		BCWnd->DoAllDrawing();
-	};
+	}
 
 	void Min()
 	{
 		if (!BCWnd) return;
 		BCWnd->OnMinimizeBox();
-	};
+	}
 
 	void Save()
 	{
 		if (!BCWnd) return;
 		SaveWnd();
-	};
+	}
 
 	void Write(char* szText)
 	{
 		if (!BCWnd) return;
 		Output(szText);
-	};
+	}
 
 	void NewFont(int iSize)
 	{
 		if (!BCWnd || iSize < 0) return;
 		SetFontSize(iSize);
-	};
+	}
 
 	void UpdateTitle()
 	{
 		if (!BCWnd || SET->CustTitle) return;
 		if (!ci_equals(BCWnd->GetWindowText(), szServer))
 			BCWnd->SetWindowText(szServer);
-	};
+	}
 
 	void Keybind(bool down)
 	{
@@ -656,7 +660,7 @@ public:
 			BCWnd->InputBox->ClrFocus();
 			KeyActive = false;
 		}
-	};
+	}
 
 	void BCReset()
 	{
@@ -666,19 +670,19 @@ public:
 			CXRect rc = { 300, 10, 600, 210 };
 			BCWnd->Move(rc, false);
 		}
-	};
+	}
 
 	void ResetKeys()
 	{
 		KeyActive = false;
-	};
+	}
 
 	CEQBCWndHandler()
 	{
 		BCWnd = NULL;
 		FontSize = 4;
 		KeyActive = false;
-	};
+	}
 private:
 	void NewWnd()
 	{
@@ -717,7 +721,7 @@ private:
 		BCWnd->Show(1, 1);
 		BCWnd->OutWnd->RemoveStyle(CWS_CLOSE);
 		//BitOff(BCWnd->OutStruct->WindowStyle, CWS_CLOSE);
-	};
+	}
 
 	void SaveWnd()
 	{
@@ -744,7 +748,7 @@ private:
         WritePrivateProfileString(SET->SaveByChar ? szCharName : "Window", "BGTint.blue",  SafeItoa(col.B,       szTemp, 10), INIFileName);
         WritePrivateProfileString(SET->SaveByChar ? szCharName : "Window", "FontSize",     SafeItoa(FontSize,    szTemp, 10), INIFileName);
         WritePrivateProfileString(SET->SaveByChar ? szCharName : "Window", "WindowTitle",  BCWnd->GetWindowText().c_str(),    INIFileName);
-	};
+	}
 
 	void Output(char* szText)
 	{
@@ -759,7 +763,7 @@ private:
 		ConvertItemTags(NewText, TRUE);
 		BCWnd->OutWnd->AppendSTML(NewText);
 		if (bScrollDown) (BCWnd->OutWnd)->SetVScrollPos(BCWnd->OutWnd->GetVScrollMax());
-	};
+	}
 
 	void SetFontSize(int uiSize)
 	{
@@ -773,7 +777,7 @@ private:
         BCWnd->OutWnd->SetVScrollPos(BCWnd->OutWnd->GetVScrollMax());
 
 		FontSize = uiSize;
-	};
+	}
 
 	CEQBCWnd*     BCWnd;
 	unsigned long FontSize;
@@ -823,34 +827,33 @@ public:
 	void NewThread()
 	{
 		InitializeCriticalSection(&ConnectCS);
-	};
+	}
 
 	void KillThread()
 	{
 		EnterCriticalSection(&ConnectCS);
 		LeaveCriticalSection(&ConnectCS);
 		DeleteCriticalSection(&ConnectCS);
-	};
+	}
 
 	void Transmit(bool bHandleDisconnect, char* szMsg)
 	{
-		if (!Connected) return;
-		int iErr = 0;
-		iErr = send(theSocket, szMsg, (int)strlen(szMsg), 0);
+		if (!Connected)
+			return;
+		int iErr = send(theSocket, szMsg, (int)strlen(szMsg), 0);
 		if (bHandleDisconnect) CheckError("Transmit:SendMsg", iErr);
 		iErr = send(theSocket, SEND_LINE_TERM, (int)strlen(SEND_LINE_TERM), 0);
 		if (bHandleDisconnect) CheckError("Transmit:SendTerm", iErr);
-	};
+	}
 
 	void SendLocalEcho()
 	{
 		if (!Connected) return;
-        int  iErr          = 0;
         char szCommand[15] = {0};
 		sprintf_s(szCommand, "%s%i\n", CMD_LOCALECHO, SET->LocalEcho);
-		iErr = send(theSocket, szCommand, (int)strlen(szCommand), 0);
+		int iErr = send(theSocket, szCommand, (int)strlen(szCommand), 0);
 		CheckError("SendLocalEcho:Send1", iErr);
-	};
+	}
 
 	void BC(char* szLine)
 	{
@@ -859,7 +862,7 @@ public:
 		{
 			Transmit(true, szLine);
 		}
-	};
+	}
 
 	void BCG(const char* szLine, bool silent = false, int start = 1)
 	{
@@ -905,7 +908,7 @@ public:
 				}
 			}
 		}
-	};
+	}
 
 	void BCT(char* szLine, bool silent=false)
 	{
@@ -938,7 +941,7 @@ public:
 				WriteOut(szTemp);
 			}
 		}
-	};
+	}
 
 	bool BCA(char* szLine, bool silent=false)
 	{
@@ -957,7 +960,7 @@ public:
 			ChanTransmit(szCmdAll, szLine);
 		}
 		return true;
-	};
+	}
 
 	void BCAA(PSPAWNINFO pLPlayer, char* szLine, bool silent=false)
 	{
@@ -966,7 +969,7 @@ public:
 		char szTemp[MAX_STRING] = { 0 };
 		sprintf_s(szTemp, "<%s> %s %s", pLPlayer->Name, pLPlayer->Name, szLine);
 		HandleIncomingString(szTemp, true, silent);
-	};
+	}
 
 	void HandleChannels(PCHAR szLine, SIZE_T BufferSize)
 	{
@@ -1012,7 +1015,7 @@ public:
 	template <unsigned int _Size>void HandleChannels(CHAR(&szLine)[_Size])
 	{
 		HandleChannels(szLine, _Size);
-	};
+	}
 
 	void ConnectINI(char* szName)
 	{
@@ -1033,7 +1036,6 @@ public:
 
 		char szMsg[MAX_STRING]    = { 0 };
 		char szTemp[MAX_STRING]   = { 0 };
-		char szPass[MAX_PASSWORD] = { 0 };
 
 		SetPlayer();
 
@@ -1047,10 +1049,9 @@ public:
 		strcpy_s(szServer, szTemp);
 		GetPrivateProfileString(szName, "Port", "2112", szTemp, MAX_STRING, INIFileName);
 		strcpy_s(szPort, szTemp);
-		GetPrivateProfileString(szName, "Password", "", szPass, MAX_STRING, INIFileName);
-		strcpy_s(szPassword, szPass);
+		s_Password = GetPrivateProfileString(szName, "Password", "", INIFileName);
 		DoConnectEQBCS();
-	};
+	}
 
 	void Connect(char* szLine, bool bForce)
 	{
@@ -1070,20 +1071,15 @@ public:
 		}
 
 		char szCurArg[MAX_STRING] = { 0 };
-		char szTemp[MAX_STRING] = { 0 };
-		char szPass[MAX_PASSWORD] = { 0 };
 
 		SetPlayer();
 
 		GetArg(szCurArg, szLine, 2); // 1 was the connect statement.
 		if (!*szCurArg)
 		{
-			GetPrivateProfileString(SET->SaveConnectByChar ? szCharName : "Last Connect", "Server", "127.0.0.1", szTemp, MAX_STRING, INIFileName);
-			strcpy_s(szServer, szTemp);
-			GetPrivateProfileString(SET->SaveConnectByChar ? szCharName : "Last Connect", "Port", "2112", szTemp, MAX_STRING, INIFileName);
-			strcpy_s(szPort, szTemp);
-			GetPrivateProfileString("Last Connect", "Password", "", szPass, 40, INIFileName);
-			strcpy_s(szPassword, szPass);
+			GetPrivateProfileString(SET->SaveConnectByChar ? szCharName : "Last Connect", "Server", "127.0.0.1", szServer, MAX_STRING, INIFileName);
+			GetPrivateProfileString(SET->SaveConnectByChar ? szCharName : "Last Connect", "Port", "2112", szPort, MAX_STRING, INIFileName);
+			s_Password = GetPrivateProfileString(SET->SaveConnectByChar ? szCharName : "Last Connect", "Password", "", INIFileName);
 		}
 		else
 		{
@@ -1091,10 +1087,8 @@ public:
 			GetArg(szCurArg, szLine, 3);
 			if (!*szCurArg)
 			{
-				GetPrivateProfileString(SET->SaveConnectByChar ? szCharName : "Last Connect", "Port", "2112", szTemp, MAX_STRING, INIFileName);
-				strcpy_s(szPort, szTemp);
-				GetPrivateProfileString("Last Connect", "Password", "", szPass, MAX_STRING, INIFileName);
-				strcpy_s(szPassword, szPass);
+				GetPrivateProfileString(SET->SaveConnectByChar ? szCharName : "Last Connect", "Port", "2112", szPort, MAX_STRING, INIFileName);
+				s_Password = GetPrivateProfileString(SET->SaveConnectByChar ? szCharName : "Last Connect", "Password", "", INIFileName);
 			}
 			else
 			{
@@ -1102,18 +1096,17 @@ public:
 				GetArg(szCurArg, szLine, 4);
 				if (!*szCurArg)
 				{
-					GetPrivateProfileString("Last Connect", "Password", "", szPass, MAX_STRING, INIFileName);
-					strcpy_s(szPassword, szPass);
+					s_Password = GetPrivateProfileString(SET->SaveConnectByChar ? szCharName : "Last Connect", "Password", "", INIFileName);
 				}
 				else
 				{
-					strcpy_s(szPassword, szCurArg);
+					s_Password = szCurArg;
 				}
 			}
 		}
 		DoConnectEQBCS();
 		return;
-	};
+	}
 
 	void HandleControlMsg(char* pRawmsg)
 	{
@@ -1154,7 +1147,8 @@ public:
 			}
 			SendNetBotEvent(pRawmsg);
 		}
-	};
+	}
+
 	template <unsigned int _Size>void HandleIncomingString(CHAR(&pRawmsg)[_Size], bool bForce, bool silent=false)
 	{
 		if (!pRawmsg) return;
@@ -1328,7 +1322,7 @@ public:
 		}
 		if(!silent)
 			WriteOut(szTemp);
-	};
+	}
 
 	void Disconnect(bool bSend)
 	{
@@ -1345,7 +1339,7 @@ public:
 			closesocket(theSocket);
 			LastReadPos = 0;
 		}
-	};
+	}
 
 	void Pulse()
 	{
@@ -1363,7 +1357,7 @@ public:
 				Connect("", false);
 			}
 		}
-	};
+	}
 
 	void Status()
 	{
@@ -1381,20 +1375,20 @@ public:
 		WriteOut(szTemp);
 		sprintf_s(szTemp, "\ar#\ax IRC Compat Mode: %s, Reconnect: %s: (every %d secs)", SET->IRCMode ? "ON" : "OFF", SET->AutoReconnect ? "ON" : "OFF", SET->ReconnectSecs);
 		WriteOut(szTemp);
-	};
+	}
 
 	void Reconnect()
 	{
 		Disconnect(true);
 		Connect("", false);
-	};
+	}
 
 	void Version()
 	{
 		char szTemp[MAX_STRING] = { 0 };
 		sprintf_s(szTemp, "\ar#\ax MQ2EQBC %.4f", MQ2Version);
 		WriteOut(szTemp);
-	};
+	}
 
 	void Names()
 	{
@@ -1404,20 +1398,20 @@ public:
 		WriteOut("\ar#\ax Requesting names...");
 		int iErr = send(theSocket, CMD_NAMES, (int)strlen(CMD_NAMES), 0);
 		CheckError("HandleNamesRequest:send", iErr);
-	};
+	}
 
 	void AutoConnect()
 	{
 		if (!SET->AutoConnect || Connected) return;
 		SetPlayer();
 		Connect("", false);
-	};
+	}
 
 	void Logout()
 	{
 		if (!Connected) return;
 		Disconnect(true);
-	};
+	}
 
 	~CConnectionMgr()
 	{
@@ -1431,6 +1425,7 @@ public:
 		LastPing = 0;
 		usSockVersion = 0;
 	}
+
 	CConnectionMgr()
 	{
 		Connected = false;
@@ -1442,7 +1437,7 @@ public:
 		pcReadBuf = new char[MAX_READBUF];
 		LastPing = 0;
 		usSockVersion = 0;
-	};
+	}
 
 private:
 	bool ConnectReady()
@@ -1453,7 +1448,7 @@ private:
 			return false;
 		}
 		return true;
-	};
+	}
 
 	void CheckSocket(char* szFunc, int iErr)
 	{
@@ -1464,7 +1459,7 @@ private:
 		}
 		WSASetLastError(0);
 		// DebugSpewAlways("Sock Error-%s: %d / w%d", szFunc, err, werr);
-	};
+	}
 
 	void CheckError(char* szFunc, int iErr)
 	{
@@ -1472,14 +1467,14 @@ private:
 		{
 			CheckSocket(szFunc, iErr);
 		}
-	};
+	}
 
 	void ConnectStatus()
 	{
 		TriedConnect = false;
 		if (Connected)
 		{
-			WriteOut("\ar#\ax Connected!");
+			WriteOut("\ar#\ax Connected, now joining...");
 			SET->UpdateServer();
 			LastReadPos = 0;
 			LastSecs = 0;
@@ -1488,7 +1483,7 @@ private:
 			return;
 		}
 		WriteOut("\ar#\ax Could not connect.");
-	};
+	}
 
 	void DoConnectEQBCS()
 	{
@@ -1515,7 +1510,7 @@ private:
 		WINDOW->Create();
 		WINDOW->UpdateTitle();
 
-		sprintf_s(szMsg, "\ar#\ax Connecting to %s %s...", szServer, szPort);
+		sprintf_s(szMsg, "\ar#\ax Connecting to %s %s%s...", szServer, szPort, s_Password.empty() ? "" : " using password");
 		WriteOut(szMsg);
 
 		LastPing = 0;
@@ -1523,8 +1518,8 @@ private:
 		serverInfo.sin_addr = *((LPIN_ADDR)*pHostEntry->h_addr_list);
 		serverInfo.sin_port = htons(atoi(szPort));
 		unsigned long ThreadId = 0;
-		CreateThread(NULL, 0, &EQBCConnectThread, 0, 0, &ThreadId);
-	};
+		CreateThread(nullptr, 0, &EQBCConnectThread, nullptr, 0, &ThreadId);
+	}
 
 	void HandleBuffer()
 	{
@@ -1572,7 +1567,8 @@ private:
 			Transmit(true, CMD_PONG);
 			LastPing = 0;
 		}
-	};
+	}
+
 	template <unsigned int _Size>void HandleIncomingCmd(CHAR(&pszCmd)[_Size], bool bForce, bool silent=false)
 	{
 		if (!pszCmd)
@@ -1615,7 +1611,7 @@ private:
 		strcpy_s(szTemp, pszCmd);
 		CleanEnd(szTemp);
 		DoCommand((PSPAWNINFO)pLocalPlayer, szTemp);
-	};
+	}
 
 	template <unsigned int _Size>void HandleBciMsg(CHAR(&szName)[_Size], char* szMsg)
 	{
@@ -1649,7 +1645,7 @@ private:
 				}
 			}
 		}
-	};
+	}
 
 	void ChanTransmit(char* szCommand, char* szLine)
 	{
@@ -1679,7 +1675,7 @@ private:
 			iErr = send(theSocket, SEND_LINE_TERM, (int)strlen(SEND_LINE_TERM), 0);
 			CheckError("BciTransmit:Send3", iErr);
 		}
-	};
+	}
 
 	void SendNetBotMsg(char* szMess)
 	{
@@ -1724,7 +1720,7 @@ private:
 		*pPosi = 0;
 		pfSendf(szMess, pPosi + 1);
 		*pPosi = ':';
-	};
+	}
 
 	void SendNetBotEvent(char* szMess)
 	{
@@ -1750,7 +1746,7 @@ private:
 			return;
 		}
 		pfSendf(szMess);
-	};
+	}
 
 	int WriteStringGetCount(char* pDest, char* pSrc)
 	{
@@ -1760,7 +1756,7 @@ private:
 			pDest[i++] = *pSrc;
 		}
 		return i;
-	};
+	}
 
 	char GetCharColor(char* pTest)
 	{
@@ -1780,7 +1776,7 @@ private:
 			}
 		}
 		return 0;
-	};
+	}
 
 	void CleanEnd(char* pszStr)
 	{
@@ -1790,7 +1786,7 @@ private:
 			int iLen = 0;
 			for (iLen = (int)strlen(pszStr) - 1; iLen >= 0 && strchr(" \r\n", pszStr[iLen]); pszStr[iLen--] = 0);
 		}
-	};
+	}
 
 	int                SocketGone;
 	int                LastReadPos;
@@ -1818,11 +1814,11 @@ unsigned long __stdcall EQBCConnectThread(void* lpParam)
 		Sleep((clock_t)4 * CLOCKS_PER_SEC / 2);
 
 		send(theSocket, CONNECT_START, (int)strlen(CONNECT_START), 0);
-		if (*szPassword)
+		if (!s_Password.empty())
 		{
 			// DebugSpew("With Password");
 			send(theSocket, CONNECT_PWSEP, (int)strlen(CONNECT_PWSEP), 0);
-			send(theSocket, szPassword, (int)strlen(szPassword), 0);
+			send(theSocket, s_Password.c_str(), static_cast<int>(s_Password.size()), 0);
 		}
 		send(theSocket, CONNECT_START2, (int)strlen(CONNECT_START2), 0);
 		send(theSocket, szToonName, (int)strlen(szToonName), 0);
@@ -2388,7 +2384,7 @@ PLUGIN_API void SetGameState(int GameState)
 			if (!SET->FirstLoad)
 			{
 				char szTemp[MAX_STRING] = { 0 };
-				sprintf_s(szTemp, "\ar#\ax Welcome to \ayMQ2EQBC\ax, %s: Use \ar/bccmd help\ax to see help.", szToonName);
+				sprintf_s(szTemp, "\ar#\ax Welcome to \ay%s v%.2f\ax, %s: Use \ar/bccmd help\ax to see help.", mqplugin::PluginName, MQ2Version, szToonName);
 				WriteOut(szTemp);
 				SET->FirstLoad = true;
 			}
@@ -2438,7 +2434,6 @@ PLUGIN_API unsigned long OnIncomingChat(char* szLine, unsigned long ulColor)
 {
 	if (!ValidIngame() || !EQBC->Connected || szLine[0] != '\x12') return 0;
 
-    PSPAWNINFO    pLPlayer               = (PSPAWNINFO)pLocalPlayer;
     char          szSender[MAX_STRING]   = {0};
     char          szTell[MAX_STRING]     = {0};
     char          szOutgoing[MAX_STRING] = {0};
