@@ -3,6 +3,8 @@
 
 #include "version.h"
 #define LOGIN_START_TOKEN "LOGIN="
+constexpr int EQBC_DEFAULT_PORT = 2112;
+constexpr int MAX_PORT_SIZE = 65535;
 
 #define STANDALONE
 
@@ -26,6 +28,11 @@ constexpr int WS_MINOR = 2;
 #include <mq/base/String.h>
 #include <mq/utils/Naming.h>
 #include <wil/resource.h>
+
+char* strtok_s(char* the_string, rsize_t* len, const char* delimiter, char** context)
+{
+	return strtok_s(the_string, delimiter, context);
+}
 #endif
 
 #include <stdio.h>
@@ -33,6 +40,9 @@ constexpr int WS_MINOR = 2;
 #include <string.h>
 #include <errno.h>
 #include <time.h>
+#include <string>
+#include <filesystem>
+#include "contrib/mINI/src/mini/ini.h"
 
 #include <sys/types.h>
 
@@ -53,6 +63,21 @@ constexpr int WS_MINOR = 2;
 #include <time.h>
 #include <sys/stat.h>
 #include <pwd.h>
+#include <safeclib/safe_str_lib.h>
+#include "contrib/mqstring_stub.h"
+#ifndef _SH_DENYNO
+	#define _SH_DENYNO 0x40
+#endif
+
+FILE* _fsopen(const char* filename, const char* mode, int writeMode)
+{
+	return fopen(filename, mode);
+}
+
+int _strnicmp(const char* string1, const char* string2, size_t maxcount)
+{
+	return strcasecmp(string1, string2);
+}
 #else
 typedef unsigned long in_addr_t;
 #endif
@@ -63,8 +88,8 @@ typedef unsigned long in_addr_t;
 
 constexpr int MAX_BUFFER_EQBC = 32768;
 
-char szLoginStr[MAX_BUFFER_EQBC] = { 0 };
-bool bInitialized = false;
+std::string s_currentFile = "eqbcs.exe";
+std::string s_LoginString = LOGIN_START_TOKEN;
 
 // ---------------------------------------------------------------------
 // Classdecs */
@@ -286,7 +311,7 @@ const int CSockio::NOSOCK=     -6;
 const int CSockio::NOCONN=     -7;
 
 const int CEqbcs::MAX_CLIENTS  = 250;
-const int CEqbcs::DEFAULT_PORT = 2112;
+const int CEqbcs::DEFAULT_PORT = EQBC_DEFAULT_PORT;
 
 // ---------------------------------------------------------------------
 // Debug
@@ -298,7 +323,6 @@ int CTrace::iTracef(const char* fmt, ...)
 
 	char     temp_str[MAX_BUFFER_EQBC];
 	va_list  arg_ptr;
-	int      str_len;
 
 	if (EQBCS_iDebugMode == 0)
 	{
@@ -306,7 +330,7 @@ int CTrace::iTracef(const char* fmt, ...)
 	}
 
 	va_start(arg_ptr,fmt); // get a pointer to the variable arguement
-	str_len=vsprintf_s(temp_str,fmt,arg_ptr); // print the formatted string i
+	const int str_len = vsprintf_s(temp_str,sizeof(temp_str), fmt, arg_ptr); // print the formatted string i
 	va_end(arg_ptr);
 
 	if(str_len>0)      // good string to transmit
@@ -326,10 +350,9 @@ int CTrace::dbg(const char *fmt, ...)
 	// Trace to stdout if TRACE defined
 	char     temp_str[MAX_BUFFER_EQBC];
 	va_list  arg_ptr;
-	int      str_len;
 
 	va_start(arg_ptr,fmt); // get a pointer to the variable arguement
-	str_len=vsprintf_s(temp_str,fmt,arg_ptr); // print the formatted string i
+	const int str_len = vsprintf_s(temp_str, sizeof(temp_str), fmt, arg_ptr); // print the formatted string i
 	va_end(arg_ptr);
 
 	if(str_len>0) {     // good string to transmit
@@ -1286,14 +1309,14 @@ void CEqbcs::HandleNewClient(struct sockaddr_in *sockAddress)
 	if (countClients() < MAX_CLIENTS) {
 		char clientIP[INET_ADDRSTRLEN] = { 0 };
 		inet_ntop(AF_INET, &sockAddress->sin_addr, clientIP, INET_ADDRSTRLEN);
-		sprintf_s(buf, "-- Client connection: fd %d (%s)\n", iSocketHandle, clientIP);
+		sprintf_s(buf, sizeof(buf), "-- Client connection: fd %d (%s)\n", iSocketHandle, clientIP);
 		WriteLocalString(buf);
 
 		clientList = new CClientNode(loginName, iSocketHandle, clientList);
 	}
 	else {
 	WriteLocalString("-- Incoming client rejected -- too many connections\n");
-		strcpy_s(buf, "Denied - too many connections");
+		strcpy_s(buf, sizeof(buf), "Denied - too many connections");
 	CSockio::iWriteSock(iSocketHandle, buf, (int)strlen(buf), &iBytesWrote);
 	CSockio::iCloseSock(iSocketHandle, 1, 1, EQBCS_TraceSockets);
 	}
@@ -1315,7 +1338,7 @@ void CEqbcs::HandleUpdateChannels(CClientNode *cn)
 	int bufflen = static_cast<int>(strlen(szTemp)) + 1;
 	cn->chanList = new char[bufflen];
 	strcpy_s(cn->chanList, bufflen, szTemp);
-	sprintf_s(szTemp, "%s joined channels %s.\n", cn->szCharName, cn->chanList);
+	sprintf_s(szTemp, sizeof(szTemp), "%s joined channels %s.\n", cn->szCharName, cn->chanList);
 	cn->outBuf->writesz(szTemp);
 	WriteLocalString(szTemp);
 }
@@ -1361,9 +1384,10 @@ void CEqbcs::HandleTell(CClientNode *cn)
 		i=0;
 		for (cn_to=clientList; cn_to!=NULL; cn_to=cn_to->next) {
 			if((cn->bLocalEcho || cn_to!=cn) && cn_to->chanList!=NULL) {
-				strncpy_s(szTemp, cn_to->chanList, MAX_BUFFER_EQBC);
+				strncpy_s(szTemp, sizeof(szTemp), cn_to->chanList, MAX_BUFFER_EQBC);
 				char* next_token = nullptr;
-				token=strtok_s(szTemp, " \n", &next_token);
+				rsize_t* szTempLen = nullptr;
+				token = strtok_s(szTemp, szTempLen, " \n", &next_token);
 				while (token != nullptr) {
 					if (strcmp(token,szName)==0) {
 						WriteLocalString(szName);
@@ -1374,7 +1398,7 @@ void CEqbcs::HandleTell(CClientNode *cn)
 						i = 1;
 						break;
 					} else
-						token = strtok_s(nullptr," \n", &next_token);
+						token = strtok_s(nullptr, szTempLen, " \n", &next_token);
 				}
 			}
 		}
@@ -1425,9 +1449,10 @@ void CEqbcs::HandleBciMessage(CClientNode *cn)
 		i=0;
 		for (cn_to=clientList; cn_to!=NULL; cn_to=cn_to->next) {
 			if((cn->bLocalEcho || cn_to!=cn) && cn_to->chanList!=NULL) {
-				strncpy_s(szTemp, cn_to->chanList, MAX_BUFFER_EQBC);
+				strncpy_s(szTemp, sizeof(szTemp), cn_to->chanList, MAX_BUFFER_EQBC);
 				char* next_token = nullptr;
-				token=strtok_s(szTemp, " \n", &next_token);
+				rsize_t* szTempLen = nullptr;
+				token = strtok_s(szTemp, szTempLen, " \n", &next_token);
 				while (token != nullptr) {
 					if (strcmp(token, szName)==0) {
 						WriteLocalString(szName);
@@ -1437,8 +1462,8 @@ void CEqbcs::HandleBciMessage(CClientNode *cn)
 						WriteLocalString(szMsg);
 						i = 1;
 						break;
-					} else
-						token = strtok_s(nullptr," \n", &next_token);
+					}
+					token = strtok_s(nullptr, szTempLen, " \n", &next_token);
 				}
 			}
 		}
@@ -1819,15 +1844,7 @@ void CEqbcs::AuthorizeClients()
 	char *p;
 	int copied=0;
 
-	if(!bInitialized) {
-		strcpy_s(szLoginStr, LOGIN_START_TOKEN);
-		char szBuffer[MAX_BUFFER_EQBC];
-		GetPrivateProfileStringA("Settings", "Password", "", szBuffer, MAX_BUFFER_EQBC, GetINIFileName(__argv[0]).c_str());
-		if(szBuffer[0])
-			sprintf_s(szLoginStr, "LOGIN:%s=", szBuffer);
-		bInitialized=true;
-	}
-	strcpy_s(loginTest, szLoginStr);
+	strcpy_s(loginTest, sizeof(loginTest), s_LoginString.c_str());
 
 	for (CClientNode *cn=clientList; cn != NULL; cn = cn->next)
 	{
@@ -1939,14 +1956,11 @@ void CEqbcs::SetupSelect(fd_set *fds)
 // ---------------------------------------------------------------------
 void CEqbcs::PrintWelcome()
 {
-	char szPort[10];
-	sprintf_s(szPort, "%d", iPort);
-
 	WriteLocalString(Title);
 	WriteLocalString(" ");
 	WriteLocalString(Version);
 	WriteLocalString("\nWaiting for connections on port: ");
-	WriteLocalString(szPort);
+	WriteLocalString(std::to_string(iPort).c_str());
 	WriteLocalString("...\n");
 }
 
@@ -2057,9 +2071,9 @@ in_addr_t CEqbcs::setAddr(char* newAddr)
 int CEqbcs::setLogfile(char* szLogfile)
 {
 	char szBuffer[2048] = { 0 };
-	if ((this->LogFile = _fsopen(szLogfile, "a", _SH_DENYNO)) == NULL)
+	if ((this->LogFile = _fsopen(szLogfile, "a", _SH_DENYNO)) == nullptr)
 	{
-		strerror_s(szBuffer, errno);
+		strerror_s(szBuffer, sizeof(szBuffer), errno);
 		printf_s("ERROR: Could not open file %s for write: %s\n\n", szLogfile, szBuffer);
 		return(1);
 	}
@@ -2102,8 +2116,9 @@ int CEqbcs::processMain(int exitOnFail)
 // ---------------------------------------------------------------------
 // Main
 // ---------------------------------------------------------------------
-int main(int argc, char *argv[])
+int main(int argc, char* argv[])
 {
+	s_currentFile = argv[0];
 	int giveusage = 0;
 #ifndef UNIXWIN
 	int dofork=0;
@@ -2115,15 +2130,33 @@ int main(int argc, char *argv[])
 	fflush(stdout);
 	CEqbcs bcs;
 
+	const mINI::INIFile iniFile(GetINIFileName(s_currentFile));
+	mINI::INIStructure ini;
+	if (iniFile.read(ini))
+	{
+		const std::string& password = ini["Settings"]["Password"];
+		if (!password.empty())
+		{
+			s_LoginString = "LOGIN:";
+			s_LoginString.append(password);
+			s_LoginString.append("=");
+		}
+		const std::string& port = ini["Settings"]["Port"];
+		if (!port.empty())
+		{
+			bcs.setPort(std::clamp(mq::GetIntFromString(port, EQBC_DEFAULT_PORT), 1, MAX_PORT_SIZE));
+		}
+	}
+
 	bool renamedProcess = false;
 
 	for (int i = 1; i < argc; ++i) {
 		if (_strnicmp("-p", argv[i],2)==0) {
-			if (strchr("1234567890", *argv[++i])!=NULL)
-				bcs.setPort(atoi((const char *)argv[i]));
+			if (strchr("1234567890", *argv[++i]) != nullptr)
+				bcs.setPort(std::clamp(mq::GetIntFromString(argv[i], EQBC_DEFAULT_PORT), 1, MAX_PORT_SIZE));
 			else {
-				giveusage=1;
-				i=argc+1;
+				giveusage = 1;
+				i = argc+1;
 			}
 		}
 #ifndef UNIXWIN
@@ -2149,15 +2182,16 @@ int main(int argc, char *argv[])
 		}
 #endif
 		else if (_strnicmp("-s", argv[i],2)==0) {
-			strcpy_s(szLoginStr, LOGIN_START_TOKEN);
+			s_LoginString = LOGIN_START_TOKEN;
 			i++;
-			if(i<argc && argv[i][0]) {
-				sprintf_s(szLoginStr, "LOGIN:%s=", argv[i]);
-				bInitialized=true;
+			if(i < argc && argv[i][0]) {
+				s_LoginString = "LOGIN:";
+				s_LoginString.append(argv[i]);
+				s_LoginString.append("=");
 			}
 			else {
-				giveusage=1;
-				i=argc+1;
+				giveusage = 1;
+				i = argc + 1;
 			}
 		}
 		else if (_strnicmp("-t", argv[i],2)==0) {
@@ -2167,7 +2201,7 @@ int main(int argc, char *argv[])
 #ifndef UNIXWIN
 		else if (_strnicmp("-u", argv[i],2)==0) {
 			if (argv[++i]) {
-				strncpy_s(szUsername, argv[i], LOGIN_NAME_MAX);
+				strncpy_s(szUsername, sizeof(szUsername), argv[i], LOGIN_NAME_MAX);
 			}
 			else {
 				giveusage=1;
