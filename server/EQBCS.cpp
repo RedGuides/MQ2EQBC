@@ -1853,7 +1853,8 @@ void CEqbcs::AuthorizeClients()
 					const size_t endPos = tmpBuf.find(';', startPos);
 					if (endPos != std::string::npos)
 					{
-						strncpy_s(cn->szCharName, CClientNode::MAX_CHARNAMELEN, tmpBuf.substr(startPos, endPos - startPos).data(), CClientNode::MAX_CHARNAMELEN);
+						std::string_view charName = tmpBuf.substr(startPos, endPos - startPos);
+						strncpy_s(cn->szCharName, CClientNode::MAX_CHARNAMELEN, charName.data(), charName.length());
 						cn->bAuthorized = true;
 						cn->cmdBufUsed = 0;
 						NotifyClientJoin(cn->szCharName);
