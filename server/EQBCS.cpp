@@ -1296,7 +1296,6 @@ void CEqbcs::HandleNewClient(struct sockaddr_in *sockAddress)
 	int iSocketHandle;
 	int iBytesWrote;
 	int addrlen=sizeof(*sockAddress);
-	const char* loginName = "--LOGIN--";
 
 	// TODO: Verify the socklen_t cast is required for unix.
 	iSocketHandle = (int)accept((unsigned)iServerHandle, (struct sockaddr *)sockAddress, (socklen_t*)&addrlen);
@@ -1312,13 +1311,13 @@ void CEqbcs::HandleNewClient(struct sockaddr_in *sockAddress)
 		sprintf_s(buf, sizeof(buf), "-- Client connection: fd %d (%s)\n", iSocketHandle, clientIP);
 		WriteLocalString(buf);
 
-		clientList = new CClientNode(loginName, iSocketHandle, clientList);
+		clientList = new CClientNode("--LOGIN--", iSocketHandle, clientList);
 	}
 	else {
-	WriteLocalString("-- Incoming client rejected -- too many connections\n");
+		WriteLocalString("-- Incoming client rejected -- too many connections\n");
 		strcpy_s(buf, sizeof(buf), "Denied - too many connections");
-	CSockio::iWriteSock(iSocketHandle, buf, (int)strlen(buf), &iBytesWrote);
-	CSockio::iCloseSock(iSocketHandle, 1, 1, EQBCS_TraceSockets);
+		CSockio::iWriteSock(iSocketHandle, buf, (int)strlen(buf), &iBytesWrote);
+		CSockio::iCloseSock(iSocketHandle, 1, 1, EQBCS_TraceSockets);
 	}
 }
 
@@ -1840,32 +1839,35 @@ std::string GetINIFileName(std::filesystem::path exePath)
 // ---------------------------------------------------------------------
 void CEqbcs::AuthorizeClients()
 {
-	char loginTest[MAX_BUFFER_EQBC];
-	char *p;
-	int copied=0;
-
-	strcpy_s(loginTest, sizeof(loginTest), s_LoginString.c_str());
-
-	for (CClientNode *cn=clientList; cn != NULL; cn = cn->next)
+	for (CClientNode *cn = clientList; cn != nullptr; cn = cn->next)
 	{
-		if (cn->bAuthorized==0 && (unsigned)cn->cmdBufUsed>strlen(loginTest) && strrchr(&cn->cmdBuf[strlen(loginTest)+1], ';') && strstr(cn->cmdBuf, loginTest))
+		if (!cn->bAuthorized)
 		{
-			for (p = &cn->cmdBuf[strlen(loginTest)]; *p != ';' && copied < CClientNode::MAX_CHARNAMELEN-1; p++)
+			std::string_view tmpBuf = cn->cmdBuf;
+			if (tmpBuf.length() > s_LoginString.length())
 			{
-				cn->szCharName[copied] = *p;
-				copied++;
+				size_t startPos = tmpBuf.find(s_LoginString);
+				if (startPos != std::string::npos)
+				{
+					startPos += s_LoginString.length();
+					const size_t endPos = tmpBuf.find(';', startPos);
+					if (endPos != std::string::npos)
+					{
+						std::string_view charName = tmpBuf.substr(startPos, endPos - startPos);
+						strncpy_s(cn->szCharName, CClientNode::MAX_CHARNAMELEN, charName.data(), charName.length());
+						cn->bAuthorized = true;
+						cn->cmdBufUsed = 0;
+						NotifyClientJoin(cn->szCharName);
+						WriteLocalString("-- ");
+						WriteLocalString(cn->szCharName);
+						WriteLocalString(" has joined the server.\n");
+						bNetBotChanges = true;
+						KickOffSameName(cn);
+					}
+				}
 			}
-			cn->szCharName[copied] = 0;
-			cn->bAuthorized = 1;
-			cn->cmdBufUsed=0;
-			NotifyClientJoin(cn->szCharName);
-			WriteLocalString("-- ");
-			WriteLocalString(cn->szCharName);
-			WriteLocalString(" has joined the server.\n");
-			bNetBotChanges = true;
-			KickOffSameName(cn);
-		}
-	}
+        }
+    }
 }
 
 // ---------------------------------------------------------------------
