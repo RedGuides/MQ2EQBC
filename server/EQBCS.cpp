@@ -2334,6 +2334,12 @@ int main(int argc, char* argv[])
 			exit(0);
 		}
 	}
+
+	// Prevent background scheduling when under load
+	if (GetPriorityClass(GetCurrentProcess()) != HIGH_PRIORITY_CLASS && !SetPriorityClass(GetCurrentProcess(), HIGH_PRIORITY_CLASS))
+	{
+		fprintf(stderr, "Failed to set high priority class, process may be slow to respond (%lu)\n", GetLastError());
+	}
 #else
 	if (szUsername[0]!='\0') {
 		if ((pw=getpwnam(szUsername))==NULL) {
