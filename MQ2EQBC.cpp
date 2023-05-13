@@ -1129,7 +1129,7 @@ public:
 	// Password is unique in that not having it means no password (vs get it from Last Connect)
 	void SetPasswordFromIni()
 	{
-		if (PrivateProfileSectionExists(szCharName, INIFileName))
+		if (SET->SaveConnectByChar && PrivateProfileSectionExists(szCharName, INIFileName))
 		{
 			s_Password = GetPrivateProfileString(szCharName, "Password", "", INIFileName);
 		}
