@@ -51,8 +51,8 @@ END
 //
 
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 19,1
- PRODUCTVERSION 19,1
+ FILEVERSION 20,0
+ PRODUCTVERSION 20,0
  FILEFLAGSMASK 0x3fL
 #ifdef _DEBUG
  FILEFLAGS 0x1L
@@ -73,11 +73,11 @@ BEGIN
 #else
             VALUE "FileDescription", "MQ2EQBC Release Version"
 #endif
-            VALUE "FileVersion", "19.1"
+            VALUE "FileVersion", "20.0"
             VALUE "InternalName", "MQ2EQBC.dll"
             VALUE "OriginalFilename", "MQ2EQBC.dll"
             VALUE "ProductName", "MQ2EQBC"
-            VALUE "ProductVersion", "19.1"
+            VALUE "ProductVersion", "20.0"
         END
     END
     BLOCK "VarFileInfo"
