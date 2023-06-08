@@ -226,11 +226,29 @@ public:
 
 	void UpdateServer()
 	{
-		WritePrivateProfileString(SET->SaveConnectByChar ? szCharName : "Last Connect", "Server", szServer, INIFileName);
-		WritePrivateProfileString(SET->SaveConnectByChar ? szCharName : "Last Connect", "Port", szPort, INIFileName);
-		if (!s_Password.empty())
+		if (SET->SaveConnectByChar)
 		{
-			WritePrivateProfileString(SET->SaveConnectByChar ? szCharName : "Last Connect", "Password", s_Password, INIFileName);
+			WritePrivateProfileString(szCharName, "Server", szServer, INIFileName);
+			WritePrivateProfileString(szCharName, "Port", szPort, INIFileName);
+			if (s_Password.empty())
+			{
+				DeletePrivateProfileKey(szCharName, "Password", INIFileName);
+			}
+			else
+			{
+				WritePrivateProfileString(szCharName, "Password", s_Password, INIFileName);
+			}
+		}
+		// Always write Last Connection
+		WritePrivateProfileString("Last Connect", "Server", szServer, INIFileName);
+		WritePrivateProfileString("Last Connect", "Port", szPort, INIFileName);
+		if (s_Password.empty())
+		{
+			DeletePrivateProfileKey("Last Connect", "Password", INIFileName);
+		}
+		else
+		{
+			WritePrivateProfileString("Last Connect", "Password", s_Password, INIFileName);
 		}
 	}
 
@@ -1085,6 +1103,42 @@ public:
 		DoConnectEQBCS();
 	}
 
+	void SetFromIni(const char* key, const char* defaultVal, char* target, int target_size = MAX_STRING)
+	{
+	    int res = 0;
+	    if (SET->SaveConnectByChar)
+	    {
+	        res = GetPrivateProfileString(szCharName, key, defaultVal, target, target_size, INIFileName);
+	    }
+	    if (res == 0)
+	    {
+	        GetPrivateProfileString("Last Connect", key, defaultVal, target, target_size, INIFileName);
+	    }
+	}
+
+	void SetServerFromIni()
+	{
+		SetFromIni("Server", "127.0.0.1", szServer);
+	}
+
+	void SetPortFromIni()
+	{
+		SetFromIni("Port", "2112", szPort);
+	}
+
+	// Password is unique in that not having it means no password (vs get it from Last Connect)
+	void SetPasswordFromIni()
+	{
+		if (SET->SaveConnectByChar && PrivateProfileSectionExists(szCharName, INIFileName))
+		{
+			s_Password = GetPrivateProfileString(szCharName, "Password", "", INIFileName);
+		}
+		else
+		{
+			s_Password = GetPrivateProfileString("Last Connect", "Password", "", INIFileName);
+		}
+	}
+
 	void Connect(char* szLine, bool bForce)
 	{
 		if (Connected && !bForce)
@@ -1109,10 +1163,10 @@ public:
 		GetArg(szCurArg, szLine, 2); // 1 was the connect statement.
 		if (!*szCurArg)
 		{
-			WriteOut("\ar#\ao No connection details specified, trying last connection.");
-			GetPrivateProfileString(SET->SaveConnectByChar ? szCharName : "Last Connect", "Server", "127.0.0.1", szServer, MAX_STRING, INIFileName);
-			GetPrivateProfileString(SET->SaveConnectByChar ? szCharName : "Last Connect", "Port", "2112", szPort, MAX_STRING, INIFileName);
-			s_Password = GetPrivateProfileString(SET->SaveConnectByChar ? szCharName : "Last Connect", "Password", "", INIFileName);
+			WriteOut("\ar#\ao No connection details specified, using server, port, and password from ini file.");
+			SetServerFromIni();
+			SetPortFromIni();
+			SetPasswordFromIni();
 		}
 		else
 		{
@@ -1120,13 +1174,9 @@ public:
 			GetArg(szCurArg, szLine, 3);
 			if (!*szCurArg)
 			{
-				WriteOut("\ar#\ao No port specified, using port from ini file.");
-				GetPrivateProfileString(SET->SaveConnectByChar ? szCharName : "Last Connect", "Port", "2112", szPort, MAX_STRING, INIFileName);
-				s_Password = GetPrivateProfileString(SET->SaveConnectByChar ? szCharName : "Last Connect", "Password", "", INIFileName);
-				if (!s_Password.empty())
-				{
-					WriteOut("\ar#\ao No password specified, using password from ini file.");
-				}
+				WriteOut("\ar#\ao No port specified, using port and password from ini file.");
+				SetPortFromIni();
+				SetPasswordFromIni();
 			}
 			else
 			{
@@ -1134,11 +1184,8 @@ public:
 				GetArg(szCurArg, szLine, 4);
 				if (!*szCurArg)
 				{
-					s_Password = GetPrivateProfileString(SET->SaveConnectByChar ? szCharName : "Last Connect", "Password", "", INIFileName);
-					if (!s_Password.empty())
-					{
-						WriteOut("\ar#\ao Using password from ini file.  To use no password, enter NULL for the password on the connect command.");
-					}
+					WriteOut("\ar#\ao Using password from ini file.  To force no password, enter NULL for the password on the connect command.");
+					SetPasswordFromIni();
 				}
 				else
 				{
