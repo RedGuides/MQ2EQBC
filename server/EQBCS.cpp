@@ -26,6 +26,7 @@ constexpr int WS_MAJOR = 2;
 constexpr int WS_MINOR = 2;
 
 #include <mq/base/String.h>
+#include <mq/base/WString.h>
 #include <mq/utils/Naming.h>
 #include <wil/resource.h>
 
