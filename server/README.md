@@ -4,8 +4,8 @@ EverQuest Box Chat Server allows you to issue commands to any or all of your cha
 It consists of two parts, the server and the plugin.
 
 ## Compiling on Linux
-Install git if not allready: sudo apt install git -y
-Create git directory: sudo mkdir /repo (be sure to verify permisions)
+Install git if not allready: ```sudo apt install git -y```
+Create git directory: ```sudo mkdir /repo``` (be sure to verify permisions)
 Compiler components:
 ```bash
 sudo apt-get install autoconf -y
