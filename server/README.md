@@ -10,6 +10,7 @@ Compiler components:
 ```bash
 sudo apt-get install autoconf -y
 sudo apt-get install libtool -y
+sudo apt install cmake -y
 ```
 Clone repos:
 ```bash
