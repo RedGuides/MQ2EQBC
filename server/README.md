@@ -5,7 +5,9 @@ It consists of two parts, the server and the plugin.
 
 ## Compiling on Linux
 Install git if not allready: ```sudo apt install git -y```
+
 Create git directory: ```sudo mkdir /repo``` (be sure to verify permisions)
+
 Compiler components:
 ```bash
 sudo apt-get install autoconf -y
