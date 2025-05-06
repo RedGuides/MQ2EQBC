@@ -919,7 +919,7 @@ public:
 
 	void BCG(const char* szLine, bool silent = false, int start = 1)
 	{
-		if (!ConnectReady() || !pCharData || !pCharData->Group)
+		if (!ConnectReady() || !pLocalPC || !pLocalPC->Group)
 			return;
 
 		if (szLine && strlen(szLine))
@@ -927,7 +927,7 @@ public:
 			for (int N = start; N < MAX_GROUP_SIZE; N++)
 			{
 				// This is expected to work for members who are out of zone
-				const auto groupMember = pCharData->Group->GetGroupMember(N);
+				const auto groupMember = pLocalPC->Group->GetGroupMember(N);
 				if (groupMember && groupMember->Type == EQP_PC)
 				{
 					char Name[MAX_STRING] = { 0 };
