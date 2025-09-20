@@ -1,0 +1,5 @@
+docs_repository: "https://github.com/RedGuides/MQ2EQBC"
+docs_edit_uri: "edit/master/"
+docs_path_transform:
+  from: "projects/mq2eqbc/"
+  to: "docs/"
