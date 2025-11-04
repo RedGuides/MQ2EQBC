@@ -131,8 +131,8 @@ class CConnectionMgr*       EQBC = nullptr;
 // --------------------------------------
 // function prototypes
 typedef void (__cdecl *fNetBotOnMsg)(char*, char*);
-typedef void (__cdecl *fNetBotOnEvent)(char*);
-void WriteOut(char* szText);
+typedef void (__cdecl *fNetBotOnEvent)(const char*);
+void WriteOut(const char* szText);
 unsigned long __stdcall EQBCConnectThread(void* lpParam);
 
 // --------------------------------------
@@ -430,7 +430,7 @@ public:
 	}
 
 private:
-	int ToggleSetting(int* pbOption, bool* pbToggle, int* pbTurnOn, char* szOptName, char* szOptDesc)
+	int ToggleSetting(int* pbOption, bool* pbToggle, int* pbTurnOn, const char* szOptName, const char* szOptDesc)
 	{
 		char szTemp[MAX_STRING] = { 0 };
 		*pbOption = *pbToggle ? (*pbOption ? FALSE : TRUE) : *pbTurnOn;
@@ -462,7 +462,7 @@ public:
 		AddStyle(CWS_RESIZEBORDER | CWS_TITLE | CWS_MINIMIZE);
 
 		SetBGColor(0xFF000000);//black background
-		OutWnd->SetClickable(1);
+		OutWnd->SetClickThrough(true);
 		InputBox = (CEditWnd*)GetChildItem("CW_ChatInput");
 		InputBox->AddStyle(0x800C0);
 		InputBox->SetCRNormal(0xFFFFFFFF);
@@ -589,14 +589,7 @@ private:
 	void WriteToBC(char*);
 	void ResetKeybinds();
 };
-template <unsigned int _Size>LPSTR SafeItoa(int _Value, char(&_Buffer)[_Size], int _Radix)
-{
-	errno_t err = _itoa_s(_Value, _Buffer, _Radix);
-	if (!err) {
-		return _Buffer;
-	}
-	return "";
-}
+
 class CEQBCWndHandler
 {
 public:
@@ -641,7 +634,7 @@ public:
 		SaveWnd();
 	}
 
-	void Write(char* szText)
+	void Write(const char* szText)
 	{
 		if (!BCWnd) return;
 		Output(szText);
@@ -735,42 +728,39 @@ private:
 			GetPrivateProfileString(SET->SaveByChar ? szCharName : "Window", "WindowTitle", szWindowText, szWindowText, MAX_STRING, INIFileName);
 		}
 		BCWnd->SetWindowText(szWindowText);
-		//SetCXStr(&BCWnd->WindowText, szWindowText);
-		BCWnd->Show(1, 1);
+		BCWnd->Show(true);
 		BCWnd->OutWnd->RemoveStyle(CWS_CLOSE);
-		//BitOff(BCWnd->OutStruct->WindowStyle, CWS_CLOSE);
 	}
 
 	void SaveWnd()
 	{
-		//return;
 		char szTemp[MAX_STRING] = { 0 };
 
-		WritePrivateProfileString(SET->SaveByChar ? szCharName : "Window", "ChatTop",      SafeItoa(BCWnd->GetLocation().top,    szTemp, 10), INIFileName);
-		WritePrivateProfileString(SET->SaveByChar ? szCharName : "Window", "ChatBottom",   SafeItoa(BCWnd->GetLocation().bottom, szTemp, 10), INIFileName);
-		WritePrivateProfileString(SET->SaveByChar ? szCharName : "Window", "ChatLeft",     SafeItoa(BCWnd->GetLocation().left,   szTemp, 10), INIFileName);
-		WritePrivateProfileString(SET->SaveByChar ? szCharName : "Window", "ChatRight",    SafeItoa(BCWnd->GetLocation().right,  szTemp, 10), INIFileName);
-		WritePrivateProfileString(SET->SaveByChar ? szCharName : "Window", "Fades",        SafeItoa(BCWnd->GetFades(),           szTemp, 10), INIFileName);
-		WritePrivateProfileString(SET->SaveByChar ? szCharName : "Window", "Alpha",        SafeItoa(BCWnd->GetAlpha(),           szTemp, 10), INIFileName);
-		WritePrivateProfileString(SET->SaveByChar ? szCharName : "Window", "FadeToAlpha",  SafeItoa(BCWnd->GetFadeToAlpha(),     szTemp, 10), INIFileName);
-		WritePrivateProfileString(SET->SaveByChar ? szCharName : "Window", "Duration",     SafeItoa(BCWnd->GetFadeDuration(),    szTemp, 10), INIFileName);
-		WritePrivateProfileString(SET->SaveByChar ? szCharName : "Window", "Locked",       SafeItoa(BCWnd->IsLocked(),           szTemp, 10), INIFileName);
-		WritePrivateProfileString(SET->SaveByChar ? szCharName : "Window", "Delay",        SafeItoa(BCWnd->GetFadeDelay(),       szTemp, 10), INIFileName);
-		WritePrivateProfileString(SET->SaveByChar ? szCharName : "Window", "BGType",       SafeItoa(BCWnd->GetBGType(),          szTemp, 10), INIFileName);
+		WritePrivateProfileInt(SET->SaveByChar ? szCharName : "Window", "ChatTop",      BCWnd->GetLocation().top,    INIFileName);
+		WritePrivateProfileInt(SET->SaveByChar ? szCharName : "Window", "ChatBottom",   BCWnd->GetLocation().bottom, INIFileName);
+		WritePrivateProfileInt(SET->SaveByChar ? szCharName : "Window", "ChatLeft",     BCWnd->GetLocation().left,   INIFileName);
+		WritePrivateProfileInt(SET->SaveByChar ? szCharName : "Window", "ChatRight",    BCWnd->GetLocation().right,  INIFileName);
+		WritePrivateProfileInt(SET->SaveByChar ? szCharName : "Window", "Fades",        BCWnd->GetFades(),           INIFileName);
+		WritePrivateProfileInt(SET->SaveByChar ? szCharName : "Window", "Alpha",        BCWnd->GetAlpha(),           INIFileName);
+		WritePrivateProfileInt(SET->SaveByChar ? szCharName : "Window", "FadeToAlpha",  BCWnd->GetFadeToAlpha(),     INIFileName);
+		WritePrivateProfileInt(SET->SaveByChar ? szCharName : "Window", "Duration",     BCWnd->GetFadeDuration(),    INIFileName);
+		WritePrivateProfileInt(SET->SaveByChar ? szCharName : "Window", "Locked",       BCWnd->IsLocked(),           INIFileName);
+		WritePrivateProfileInt(SET->SaveByChar ? szCharName : "Window", "Delay",        BCWnd->GetFadeDelay(),       INIFileName);
+		WritePrivateProfileInt(SET->SaveByChar ? szCharName : "Window", "BGType",       BCWnd->GetBGType(),          INIFileName);
 
 		ARGBCOLOR col = { 0 };
 		col.ARGB = BCWnd->GetBGColor();
-		WritePrivateProfileString(SET->SaveByChar ? szCharName : "Window", "BGTint.alpha", SafeItoa(col.A,       szTemp, 10), INIFileName);
-		WritePrivateProfileString(SET->SaveByChar ? szCharName : "Window", "BGTint.red",   SafeItoa(col.R,       szTemp, 10), INIFileName);
-		WritePrivateProfileString(SET->SaveByChar ? szCharName : "Window", "BGTint.green", SafeItoa(col.G,       szTemp, 10), INIFileName);
-		WritePrivateProfileString(SET->SaveByChar ? szCharName : "Window", "BGTint.blue",  SafeItoa(col.B,       szTemp, 10), INIFileName);
-		WritePrivateProfileString(SET->SaveByChar ? szCharName : "Window", "FontSize",     SafeItoa(FontSize,    szTemp, 10), INIFileName);
+		WritePrivateProfileInt(SET->SaveByChar ? szCharName : "Window", "BGTint.alpha",    col.A,    INIFileName);
+		WritePrivateProfileInt(SET->SaveByChar ? szCharName : "Window", "BGTint.red",      col.R,    INIFileName);
+		WritePrivateProfileInt(SET->SaveByChar ? szCharName : "Window", "BGTint.green",    col.G,    INIFileName);
+		WritePrivateProfileInt(SET->SaveByChar ? szCharName : "Window", "BGTint.blue",     col.B,    INIFileName);
+		WritePrivateProfileInt(SET->SaveByChar ? szCharName : "Window", "FontSize",        FontSize, INIFileName);
 		WritePrivateProfileString(SET->SaveByChar ? szCharName : "Window", "WindowTitle",  BCWnd->GetWindowText().c_str(),    INIFileName);
 	}
 
-	void Output(char* szText)
+	void Output(const char* szText)
 	{
-		BCWnd->Show(1, 1);
+		BCWnd->Show(true);
 		bool bScrollDown = (BCWnd->OutWnd->GetVScrollPos() == BCWnd->OutWnd->GetVScrollMax()) ? true : false;
 		char szProcessed[MAX_STRING] = { 0 };
 		StripMQChat(szText, szProcessed);
@@ -802,9 +792,9 @@ private:
 	bool          KeyActive;
 };
 
-void WriteOut(char *szText)
+void WriteOut(const char *szText)
 {
-	typedef int (__cdecl *fMQWriteBC)(char *szText);
+	typedef int (__cdecl *fMQWriteBC)(const char *szText);
 	int bWrite        = true;
 	auto pPlugin = pPlugins;
 	while (pPlugin)
@@ -857,7 +847,7 @@ public:
 		DeleteCriticalSection(&ConnectCS);
 	}
 
-	void Transmit(bool bHandleDisconnect, char* szMsg)
+	void Transmit(bool bHandleDisconnect, const char* szMsg)
 	{
 		if (!Connected)
 			return;
@@ -877,7 +867,7 @@ public:
 	}
 
 	void BCName(char* Name, const char* szLine, bool silent = false) {
-		char* szCmdBct = (silent ? CMD_STELL : CMD_TELL);
+		const char* szCmdBct = (silent ? CMD_STELL : CMD_TELL);
 
 		if (szLine)
 		{
@@ -927,7 +917,7 @@ public:
 			for (int N = start; N < MAX_GROUP_SIZE; N++)
 			{
 				// This is expected to work for members who are out of zone
-				const auto groupMember = pLocalPC->Group->GetGroupMember(N);
+				const auto groupMember = pLocalPC->GetGroupMember(N);
 				if (groupMember && groupMember->Type == EQP_PC)
 				{
 					char Name[MAX_STRING] = { 0 };
@@ -941,19 +931,18 @@ public:
 	void BCT(char* szLine, bool silent=false)
 	{
 		if (!ConnectReady()) return;
-		//char szCmdBct[] = CMD_TELL;
+
 		if (szLine && strlen(szLine))
 		{
 			BCName(szLine, nullptr, silent);
 		}
 	}
 
-	bool BCA(char* szLine, bool silent=false)
+	bool BCA(const char* szLine, bool silent = false)
 	{
 		if (!ConnectReady()) return false;
 
-		//char szCmdAll[] = CMD_MSGALL;
-		char *szCmdAll = (silent ? CMD_SMSGALL : CMD_MSGALL);
+		const char *szCmdAll = (silent ? CMD_SMSGALL : CMD_MSGALL);
 		if (szLine && strlen(szLine))
 		{
 			if (SET->EchoAll)
@@ -967,7 +956,7 @@ public:
 		return true;
 	}
 
-	void BCAA(PSPAWNINFO pLPlayer, char* szLine, bool silent=false)
+	void BCAA(PlayerClient* pLPlayer, const char* szLine, bool silent = false)
 	{
 		if (!BCA(szLine, silent)) return;
 
@@ -1021,16 +1010,16 @@ public:
 		}
 	}
 
-	void HandleChannels(PCHAR szLine, SIZE_T BufferSize)
+	void HandleChannels(char* szLine, size_t BufferSize)
 	{
 		if (!ConnectReady())
 			return;
 
 		char  szTemp1[MAX_STRING] = { 0 };
 		char  szTemp2[MAX_STRING] = { 0 };
-		char* szArg                = NULL;
+		char* szArg                = nullptr;
 		char  szCmdChan[]          = CMD_CHANNELS;
-		char *next_token1 = NULL;
+		char* next_token1          = nullptr;
 		if (char* pName = GetCharName()) {
 
 			if (!szLine || (szLine && szLine[0] == '\0'))
@@ -1062,9 +1051,10 @@ public:
 			ChanTransmit(szCmdChan, szTemp1);
 		}
 	}
-	template <unsigned int _Size>void HandleChannels(CHAR(&szLine)[_Size])
+	template <unsigned int Size>
+	void HandleChannels(char(&szLine)[Size])
 	{
-		HandleChannels(szLine, _Size);
+		HandleChannels(szLine, Size);
 	}
 
 	void ConnectINI(char* szName)
@@ -1139,7 +1129,7 @@ public:
 		}
 	}
 
-	void Connect(char* szLine, bool bForce)
+	void Connect(const char* szLine, bool bForce)
 	{
 		if (Connected && !bForce)
 		{
@@ -1552,7 +1542,7 @@ private:
 		return true;
 	}
 
-	void CheckSocket(char* szFunc, int iErr)
+	void CheckSocket(const char* szFunc, int iErr)
 	{
 		int iWerr = WSAGetLastError();
 		if (iWerr == WSAECONNABORTED)
@@ -1563,7 +1553,7 @@ private:
 		// DebugSpewAlways("Sock Error-%s: %d / w%d", szFunc, err, werr);
 	}
 
-	void CheckError(char* szFunc, int iErr)
+	void CheckError(const char* szFunc, int iErr)
 	{
 		if (iErr == SOCKET_ERROR || (iErr == 0 && WSAGetLastError() != WSAEWOULDBLOCK))
 		{
@@ -1580,7 +1570,9 @@ private:
 			SET->UpdateServer();
 			LastReadPos = 0;
 			LastSecs = 0;
-			HandleChannels("", 0);
+
+			char temp[1] = {};
+			HandleChannels(temp, 0);
 			SendLocalEcho();
 			return;
 		}
@@ -1671,7 +1663,8 @@ private:
 		}
 	}
 
-	template <unsigned int _Size>void HandleIncomingCmd(CHAR(&pszCmd)[_Size], bool bForce, bool silent=false)
+	template <unsigned int _Size>
+	void HandleIncomingCmd(char(&pszCmd)[_Size], bool bForce, bool silent=false)
 	{
 		if (!pszCmd)
 			return;
@@ -1749,7 +1742,7 @@ private:
 		}
 	}
 
-	void ChanTransmit(char* szCommand, char* szLine)
+	void ChanTransmit(const char* szCommand, const char* szLine)
 	{
 		int iErr = 0;
 		iErr = send(theSocket, szCommand, (int)strlen(szCommand), 0);
@@ -1781,9 +1774,9 @@ private:
 
 	void SendNetBotMsg(char* szMess)
 	{
-		char* pPosi = NULL;
-		char* pName = NULL;
-		if (szMess != NULL && *szMess != NULL)
+		char* pPosi = nullptr;
+		const char* pName = nullptr;
+		if (szMess != nullptr && *szMess != 0)
 		{
 			if (pPosi = strchr(szMess, ':'))
 			{
@@ -1824,7 +1817,7 @@ private:
 		*pPosi = ':';
 	}
 
-	void SendNetBotEvent(char* szMess)
+	void SendNetBotEvent(const char* szMess)
 	{
 		if (szMess == NULL || *szMess == NULL)
 		{
@@ -1850,7 +1843,7 @@ private:
 		pfSendf(szMess);
 	}
 
-	int WriteStringGetCount(char* pDest, char* pSrc)
+	int WriteStringGetCount(char* pDest, const char* pSrc)
 	{
 		int i = 0;
 		for (; pDest && pSrc && *pSrc; pSrc++)
